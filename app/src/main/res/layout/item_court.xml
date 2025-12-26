@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardView"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:background="?attr/selectableItemBackground">
+
+        <TextView
+            android:id="@+id/courtName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="מגרש מרכזי"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black" />
+
+        <TextView
+            android:id="@+id/courtLocation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="אולם ספורט ראשי"
+            android:textSize="14sp"
+            android:layout_marginTop="4dp"
+            android:textColor="@android:color/darker_gray" />
+
+        <TextView
+            android:id="@+id/courtHours"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="06:00 - 23:00"
+            android:textSize="14sp"
+            android:layout_marginTop="4dp"
+            android:textColor="@android:color/darker_gray" />
+
+        <TextView
+            android:id="@+id/courtDays"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ימי פעילות: כל השבוע"
+            android:textSize="14sp"
+            android:layout_marginTop="4dp"
+            android:textColor="@android:color/holo_blue_dark" />
+
+        <TextView
+            android:id="@+id/courtStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="זמין"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"
+            android:textColor="#4CAF50" />
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

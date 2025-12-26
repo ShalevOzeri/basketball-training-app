@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="?attr/colorPrimary"
+            android:elevation="4dp"
+            app:title="לוח זמנים שבועי"
+            app:titleTextColor="@android:color/white"
+            app:navigationIcon="?attr/homeAsUpIndicator" />
+
+        <TextView
+            android:id="@+id/courtNameText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="מגרש"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:gravity="center" />
+
+        <!-- יום ראשון -->
+        <include
+            android:id="@+id/sundayLayout"
+            layout="@layout/item_day_schedule"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp" />
+
+        <!-- יום שני -->
+        <include
+            android:id="@+id/mondayLayout"
+            layout="@layout/item_day_schedule"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp" />
+
+        <!-- יום שלישי -->
+        <include
+            android:id="@+id/tuesdayLayout"
+            layout="@layout/item_day_schedule"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp" />
+
+        <!-- יום רביעי -->
+        <include
+            android:id="@+id/wednesdayLayout"
+            layout="@layout/item_day_schedule"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp" />
+
+        <!-- יום חמישי -->
+        <include
+            android:id="@+id/thursdayLayout"
+            layout="@layout/item_day_schedule"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp" />
+
+        <!-- יום שישי -->
+        <include
+            android:id="@+id/fridayLayout"
+            layout="@layout/item_day_schedule"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp" />
+
+        <!-- יום שבת -->
+        <include
+            android:id="@+id/saturdayLayout"
+            layout="@layout/item_day_schedule"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/saveScheduleButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="שמור לוח זמנים"
+            android:textSize="16sp"
+            android:padding="16dp" />
+
+    </LinearLayout>
+
+</ScrollView>

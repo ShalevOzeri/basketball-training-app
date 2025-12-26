@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TestApp</string>
+    <string name="welcome_message">Welcome to Android!</string>
+    <string name="click_me">Click Me</string>
+    
+    <!-- Court Adapter Strings -->
+    <string name="court_hours_format">%1$s - %2$s</string>
+    <string name="court_active_days">ימי פעילות: %1$s</string>
+    <string name="court_all_week">כל השבוע</string>
+    <string name="court_available">זמין</string>
+    <string name="court_unavailable">לא זמין</string>
+</resources>

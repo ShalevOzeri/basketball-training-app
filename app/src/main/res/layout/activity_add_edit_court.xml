@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="?attr/colorPrimary"
+            android:elevation="4dp"
+            app:title="הוספת מגרש"
+            app:titleTextColor="@android:color/white"
+            app:navigationIcon="?attr/homeAsUpIndicator" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Court Name -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="שם המגרש"
+                android:textSize="14sp"
+                android:layout_marginBottom="4dp" />
+            
+            <EditText
+                android:id="@+id/courtNameInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="שם המגרש"
+                android:inputType="text"
+                android:padding="12dp"
+                android:background="@android:drawable/edit_text" />
+
+            <!-- Court Location -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="מיקום"
+                android:textSize="14sp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="4dp" />
+            
+            <EditText
+                android:id="@+id/courtLocationInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="מיקום"
+                android:inputType="text"
+                android:padding="12dp"
+                android:background="@android:drawable/edit_text" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="לוח זמנים שבועי"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Sunday -->
+            <include
+                android:id="@+id/sundayLayout"
+                layout="@layout/item_day_schedule_edit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Monday -->
+            <include
+                android:id="@+id/mondayLayout"
+                layout="@layout/item_day_schedule_edit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Tuesday -->
+            <include
+                android:id="@+id/tuesdayLayout"
+                layout="@layout/item_day_schedule_edit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Wednesday -->
+            <include
+                android:id="@+id/wednesdayLayout"
+                layout="@layout/item_day_schedule_edit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Thursday -->
+            <include
+                android:id="@+id/thursdayLayout"
+                layout="@layout/item_day_schedule_edit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Friday -->
+            <include
+                android:id="@+id/fridayLayout"
+                layout="@layout/item_day_schedule_edit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Saturday -->
+            <include
+                android:id="@+id/saturdayLayout"
+                layout="@layout/item_day_schedule_edit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp" />
+
+            <Button
+                android:id="@+id/saveButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="שמור מגרש"
+                android:textSize="16sp"
+                android:padding="16dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

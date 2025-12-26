@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "326773572032",
+    "project_id": "basketball-training-management",
+    "storage_bucket": "basketball-training-management.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:326773572032:android:f14e6b51479a84a3cac825",
+        "android_client_info": {
+          "package_name": "com.example.testapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBd5WrD6Wq676qBozG4n10IJt_WQ7GLJYc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
