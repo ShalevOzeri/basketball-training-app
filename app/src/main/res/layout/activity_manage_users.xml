@@ -11,6 +11,8 @@
         android:layout_height="?attr/actionBarSize"
         android:background="#FF9800"
         android:elevation="4dp"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:title="ניהול משתמשים"
         app:titleTextColor="@android:color/white" />
 
     <LinearLayout
@@ -18,52 +20,52 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="12dp"
-        android:background="#F5F5F5">
+        android:background="#F5F5F5"
+        android:gravity="center_vertical">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="מגרש:"
+            android:text="סנן לפי תפקיד:"
             android:textStyle="bold"
-            android:layout_gravity="center_vertical"
             android:layout_marginEnd="8dp" />
 
         <Spinner
-            android:id="@+id/spinnerCourtFilter"
+            android:id="@+id/roleFilterSpinner"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:minHeight="48dp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="קבוצה:"
             android:textStyle="bold"
-            android:layout_gravity="center_vertical"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="8dp" />
 
         <Spinner
-            android:id="@+id/spinnerTeamFilter"
+            android:id="@+id/teamFilterSpinner"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1" />
-
+            android:layout_weight="1"
+            android:minHeight="48dp" />
     </LinearLayout>
 
-    <ScrollView
-        android:id="@+id/scrollView"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/usersRecyclerView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="8dp" />
 
-        <LinearLayout
-            android:id="@+id/courtsContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp" />
-
-    </ScrollView>
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_margin="16dp"
+        android:visibility="gone" />
 
 </LinearLayout>

@@ -20,13 +20,32 @@ public class TrainingAdapter extends RecyclerView.Adapter<TrainingAdapter.Traini
 
     private List<Training> trainings = new ArrayList<>();
     private final OnTrainingClickListener listener;
+    private final OnTrainingEditListener editListener;
+    private final OnTrainingDeleteListener deleteListener;
+    private final OnTrainingDuplicateListener duplicateListener;
 
     public interface OnTrainingClickListener {
         void onTrainingClick(Training training);
     }
 
-    public TrainingAdapter(OnTrainingClickListener listener) {
+    public interface OnTrainingEditListener {
+        void onTrainingEdit(Training training);
+    }
+
+    public interface OnTrainingDeleteListener {
+        void onTrainingDelete(Training training);
+    }
+
+    public interface OnTrainingDuplicateListener {
+        void onTrainingDuplicate(Training training);
+    }
+
+    public TrainingAdapter(OnTrainingClickListener listener, OnTrainingEditListener editListener, 
+                          OnTrainingDeleteListener deleteListener, OnTrainingDuplicateListener duplicateListener) {
         this.listener = listener;
+        this.editListener = editListener;
+        this.deleteListener = deleteListener;
+        this.duplicateListener = duplicateListener;
     }
 
     public void setTrainings(List<Training> trainings) {
@@ -45,7 +64,7 @@ public class TrainingAdapter extends RecyclerView.Adapter<TrainingAdapter.Traini
     @Override
     public void onBindViewHolder(@NonNull TrainingViewHolder holder, int position) {
         Training training = trainings.get(position);
-        holder.bind(training, listener);
+        holder.bind(training, listener, editListener, deleteListener, duplicateListener);
     }
 
     @Override
@@ -54,9 +73,10 @@ public class TrainingAdapter extends RecyclerView.Adapter<TrainingAdapter.Traini
     }
 
     static class TrainingViewHolder extends RecyclerView.ViewHolder {
-        TextView teamName, courtName, dayOfWeek, timeRange, duration;
+        TextView teamName, courtName, dayOfWeek, trainingDate, timeRange, duration;
         CardView cardView;
         View colorIndicator;
+        com.google.android.material.button.MaterialButton btnEdit, btnDelete, btnDuplicate;
 
         TrainingViewHolder(View itemView) {
             super(itemView);
@@ -64,15 +84,27 @@ public class TrainingAdapter extends RecyclerView.Adapter<TrainingAdapter.Traini
             teamName = itemView.findViewById(R.id.teamName);
             courtName = itemView.findViewById(R.id.courtName);
             dayOfWeek = itemView.findViewById(R.id.dayOfWeek);
+            trainingDate = itemView.findViewById(R.id.trainingDate);
             timeRange = itemView.findViewById(R.id.timeRange);
             duration = itemView.findViewById(R.id.duration);
             colorIndicator = itemView.findViewById(R.id.colorIndicator);
+            btnEdit = itemView.findViewById(R.id.btnEdit);
+            btnDelete = itemView.findViewById(R.id.btnDelete);
+            btnDuplicate = itemView.findViewById(R.id.btnDuplicate);
         }
 
-        void bind(Training training, OnTrainingClickListener listener) {
+        void bind(Training training, OnTrainingClickListener listener, OnTrainingEditListener editListener, 
+                  OnTrainingDeleteListener deleteListener, OnTrainingDuplicateListener duplicateListener) {
             teamName.setText(training.getTeamName());
             courtName.setText("מגרש: " + training.getCourtName());
             dayOfWeek.setText(training.getDayOfWeek());
+            
+            // Format and display date using UTC timezone
+            java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+            dateFormat.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+            String formattedDate = dateFormat.format(new java.util.Date(training.getDate()));
+            trainingDate.setText(formattedDate);
+            
             timeRange.setText(training.getStartTime() + " - " + training.getEndTime());
             duration.setText(training.getDurationInMinutes() + " דקות");
             
@@ -83,6 +115,32 @@ public class TrainingAdapter extends RecyclerView.Adapter<TrainingAdapter.Traini
             }
 
             itemView.setOnClickListener(v -> listener.onTrainingClick(training));
+
+            if (editListener != null) {
+                btnEdit.setVisibility(View.VISIBLE);
+                btnEdit.setOnClickListener(v -> editListener.onTrainingEdit(training));
+            } else {
+                btnEdit.setVisibility(View.GONE);
+            }
+
+            if (deleteListener != null) {
+                btnDelete.setVisibility(View.VISIBLE);
+                btnDelete.setOnClickListener(v -> deleteListener.onTrainingDelete(training));
+            } else {
+                btnDelete.setVisibility(View.GONE);
+            }
+
+            if (duplicateListener != null) {
+                btnDuplicate.setVisibility(View.VISIBLE);
+                android.util.Log.d("TrainingAdapter", "Setting duplicate listener for training: " + training.getTeamName());
+                btnDuplicate.setOnClickListener(v -> {
+                    android.util.Log.d("TrainingAdapter", "Duplicate button clicked for: " + training.getTeamName());
+                    duplicateListener.onTrainingDuplicate(training);
+                });
+            } else {
+                android.util.Log.d("TrainingAdapter", "duplicateListener is NULL");
+                btnDuplicate.setVisibility(View.GONE);
+            }
         }
     }
 }

@@ -9,6 +9,7 @@ public class Court {
     private String courtId;
     private String name;
     private String location;
+    private String courtType; // "אולם" or "מגרש מוצל"
     private boolean isAvailable;
     
     // Weekly schedule stored as separate fields to avoid Firebase serialization issues
@@ -70,6 +71,7 @@ public class Court {
     public String getCourtId() { return courtId; }
     public String getName() { return name; }
     public String getLocation() { return location; }
+    public String getCourtType() { return courtType; }
     public boolean isAvailable() { return isAvailable; }
     
     // Day schedule getters
@@ -91,6 +93,7 @@ public class Court {
     public void setCourtId(String courtId) { this.courtId = courtId; }
     public void setName(String name) { this.name = name; }
     public void setLocation(String location) { this.location = location; }
+    public void setCourtType(String courtType) { this.courtType = courtType; }
     public void setAvailable(boolean available) { isAvailable = available; }
     
     // Day schedule setters

@@ -12,6 +12,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.appbar.MaterialToolbar;
 import com.example.testapp.models.User;
 import com.example.testapp.repository.UserRepository;
 
@@ -22,17 +23,33 @@ public class RegisterActivity extends AppCompatActivity {
     private Button registerButton;
     private ProgressBar progressBar;
     private UserRepository userRepository;
+    private MaterialToolbar toolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
+        toolbar.setNavigationOnClickListener(v -> finish());
+
         initializeViews();
-        setupRoleSpinner();
         userRepository = new UserRepository();
+        
+        setupRoleSpinner();
 
         registerButton.setOnClickListener(v -> registerUser());
+    }
+    
+    private void setupRoleSpinner() {
+        String[] roles = {"מאמן (COACH)", "שחקן (PLAYER)"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, roles);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        roleSpinner.setAdapter(adapter);
     }
 
     private void initializeViews() {
@@ -45,27 +62,37 @@ public class RegisterActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
     }
 
-    private void setupRoleSpinner() {
-        String[] roles = {"COACH", "COORDINATOR", "ADMIN"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, roles);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        roleSpinner.setAdapter(adapter);
-    }
-
     private void registerUser() {
         String name = nameEditText.getText().toString().trim();
         String email = emailEditText.getText().toString().trim();
         String password = passwordEditText.getText().toString().trim();
         String phone = phoneEditText.getText().toString().trim();
-        String role = roleSpinner.getSelectedItem().toString();
+        
+        // Get role from spinner
+        String selectedRole = roleSpinner.getSelectedItem().toString();
+        String role;
+        if (selectedRole.contains("COACH")) {
+            role = "COACH";
+        } else if (selectedRole.contains("PLAYER")) {
+            role = "PLAYER";
+        } else {
+            role = "COACH"; // Default
+        }
 
         if (TextUtils.isEmpty(name)) {
             nameEditText.setError("Name is required");
             return;
         }
 
-        if (TextUtils.isEmpty(email)) {
-            emailEditText.setError("Email is required");
+        // Email is optional for players, required for coaches
+        if (role.equals("COACH") && TextUtils.isEmpty(email)) {
+            emailEditText.setError("Email is required for coaches");
+            return;
+        }
+
+        // For players, either email or phone must be provided
+        if (role.equals("PLAYER") && TextUtils.isEmpty(email) && TextUtils.isEmpty(phone)) {
+            Toast.makeText(this, "Please provide either email or phone number", Toast.LENGTH_SHORT).show();
             return;
         }
 

@@ -21,6 +21,14 @@ public class TeamViewModel extends ViewModel {
         return teams;
     }
 
+    public void filterByCoach(String coachId) {
+        repository.setCoachFilter(coachId);
+    }
+
+    public void clearFilter() {
+        repository.clearFilter();
+    }
+
     public void addTeam(Team team) {
         repository.addTeam(team);
     }

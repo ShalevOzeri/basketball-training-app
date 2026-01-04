@@ -27,6 +27,12 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
     
+    packagingOptions {
+        resources {
+            excludes += ['META-INF/DEPENDENCIES', 'META-INF/LICENSE', 'META-INF/LICENSE.txt', 'META-INF/NOTICE', 'META-INF/NOTICE.txt']
+        }
+    }
+    
     buildFeatures {
         viewBinding true
     }
@@ -56,4 +62,7 @@ dependencies {
     // Navigation Component
     implementation 'androidx.navigation:navigation-fragment:2.7.6'
     implementation 'androidx.navigation:navigation-ui:2.7.6'
+    
+    // Gson for JSON parsing
+    implementation 'com.google.code.gson:gson:2.10.1'
 }

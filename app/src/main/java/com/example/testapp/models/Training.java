@@ -1,12 +1,15 @@
 package com.example.testapp.models;
 
-public class Training {
+import java.io.Serializable;
+
+public class Training implements Serializable {
     private String trainingId;
     private String teamId;
     private String teamName;
     private String teamColor;
     private String courtId;
     private String courtName;
+    private String courtType; // "אולם" or "מגרש מוצל"
     private String dayOfWeek; // "Sunday", "Monday", etc.
     private String startTime; // "16:00"
     private String endTime; // "18:00"
@@ -43,6 +46,7 @@ public class Training {
     public String getTeamColor() { return teamColor; }
     public String getCourtId() { return courtId; }
     public String getCourtName() { return courtName; }
+    public String getCourtType() { return courtType; }
     public String getDayOfWeek() { return dayOfWeek; }
     public String getStartTime() { return startTime; }
     public String getEndTime() { return endTime; }
@@ -58,6 +62,7 @@ public class Training {
     public void setTeamColor(String teamColor) { this.teamColor = teamColor; }
     public void setCourtId(String courtId) { this.courtId = courtId; }
     public void setCourtName(String courtName) { this.courtName = courtName; }
+    public void setCourtType(String courtType) { this.courtType = courtType; }
     public void setDayOfWeek(String dayOfWeek) { this.dayOfWeek = dayOfWeek; }
     public void setStartTime(String startTime) { this.startTime = startTime; }
     public void setEndTime(String endTime) { this.endTime = endTime; }
@@ -68,24 +73,61 @@ public class Training {
 
     // Helper method to check for time conflicts
     public boolean conflictsWith(Training other) {
-        if (!this.courtId.equals(other.courtId) || !this.dayOfWeek.equals(other.dayOfWeek)) {
+        // Conflict only if same court and same calendar day
+        if (!safeEquals(this.courtId, other.courtId) || !isSameDay(this.date, other.date)) {
             return false;
         }
-        
-        int thisStart = timeToMinutes(this.startTime);
-        int thisEnd = timeToMinutes(this.endTime);
-        int otherStart = timeToMinutes(other.startTime);
-        int otherEnd = timeToMinutes(other.endTime);
-        
+
+        int thisStart = timeToMinutesSafe(this.startTime);
+        int thisEnd = timeToMinutesSafe(this.endTime);
+        int otherStart = timeToMinutesSafe(other.startTime);
+        int otherEnd = timeToMinutesSafe(other.endTime);
+
+        // If any times are invalid, skip conflict to avoid false positives from bad data
+        if (thisStart < 0 || thisEnd < 0 || otherStart < 0 || otherEnd < 0) {
+            return false;
+        }
+
         return !(thisEnd <= otherStart || thisStart >= otherEnd);
     }
 
-    private int timeToMinutes(String time) {
-        String[] parts = time.split(":");
-        return Integer.parseInt(parts[0]) * 60 + Integer.parseInt(parts[1]);
+    private boolean isSameDay(long first, long second) {
+        java.util.Calendar cal1 = java.util.Calendar.getInstance();
+        java.util.Calendar cal2 = java.util.Calendar.getInstance();
+        cal1.setTimeInMillis(first);
+        cal2.setTimeInMillis(second);
+        return cal1.get(java.util.Calendar.YEAR) == cal2.get(java.util.Calendar.YEAR)
+                && cal1.get(java.util.Calendar.DAY_OF_YEAR) == cal2.get(java.util.Calendar.DAY_OF_YEAR);
+    }
+
+    private boolean safeEquals(String a, String b) {
+        if (a == null) {
+            return b == null;
+        }
+        return a.equals(b);
+    }
+
+    private int timeToMinutesSafe(String time) {
+        try {
+            if (time == null) {
+                return -1;
+            }
+            String[] parts = time.split(":");
+            if (parts.length != 2) {
+                return -1;
+            }
+            int h = Integer.parseInt(parts[0]);
+            int m = Integer.parseInt(parts[1]);
+            if (h < 0 || h > 23 || m < 0 || m > 59) {
+                return -1;
+            }
+            return h * 60 + m;
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     public int getDurationInMinutes() {
-        return timeToMinutes(endTime) - timeToMinutes(startTime);
+        return timeToMinutesSafe(endTime) - timeToMinutesSafe(startTime);
     }
 }

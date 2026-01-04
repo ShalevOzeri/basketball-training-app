@@ -10,4 +10,12 @@
     <string name="court_all_week">כל השבוע</string>
     <string name="court_available">זמין</string>
     <string name="court_unavailable">לא זמין</string>
+    
+    <!-- Calendar Strings -->
+    <string name="calendar_sign_in">Sign In to Google Calendar</string>
+    <string name="calendar_sign_out">Sign Out from Calendar</string>
+    <string name="calendar_signed_in">Signed in to calendar</string>
+    <string name="calendar_signed_out">Signed out from calendar</string>
+    <string name="calendar_sync_success">Training synced to calendar</string>
+    <string name="calendar_sync_failed">Failed to sync training to calendar</string>
 </resources>

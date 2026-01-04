@@ -17,12 +17,22 @@ public class TeamRepository {
     private final DatabaseReference teamsRef;
     private final MutableLiveData<List<Team>> teamsLiveData;
     private final MutableLiveData<String> errorLiveData;
+    private String coachIdFilter;
 
     public TeamRepository() {
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         teamsRef = database.getReference("teams");
         teamsLiveData = new MutableLiveData<>();
         errorLiveData = new MutableLiveData<>();
+    }
+
+    public void setCoachFilter(String coachId) {
+        this.coachIdFilter = coachId;
+        loadTeams();
+    }
+
+    public void clearFilter() {
+        this.coachIdFilter = null;
         loadTeams();
     }
 
@@ -34,7 +44,10 @@ public class TeamRepository {
                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
                     Team team = snapshot.getValue(Team.class);
                     if (team != null) {
-                        teams.add(team);
+                        // Filter by coach ID if a filter is set
+                        if (coachIdFilter == null || (team.getCoachId() != null && team.getCoachId().equals(coachIdFilter))) {
+                            teams.add(team);
+                        }
                     }
                 }
                 teamsLiveData.setValue(teams);

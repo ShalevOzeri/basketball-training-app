@@ -1,6 +1,9 @@
 package com.example.testapp.models;
 
-public class Team {
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class Team implements Parcelable {
     private String teamId;
     private String name;
     private String ageGroup; // "U12", "U14", "U16", etc.
@@ -10,6 +13,7 @@ public class Team {
     private String color; // Hex color for visual representation
     private int numberOfPlayers;
     private long createdAt;
+    private long updatedAt;
 
     public Team() {
         // Required empty constructor for Firebase
@@ -25,6 +29,7 @@ public class Team {
         this.color = color;
         this.numberOfPlayers = 0;
         this.createdAt = System.currentTimeMillis();
+        this.updatedAt = System.currentTimeMillis();
     }
 
     // Getters
@@ -37,6 +42,7 @@ public class Team {
     public String getColor() { return color; }
     public int getNumberOfPlayers() { return numberOfPlayers; }
     public long getCreatedAt() { return createdAt; }
+    public long getUpdatedAt() { return updatedAt; }
 
     // Setters
     public void setTeamId(String teamId) { this.teamId = teamId; }
@@ -48,9 +54,55 @@ public class Team {
     public void setColor(String color) { this.color = color; }
     public void setNumberOfPlayers(int numberOfPlayers) { this.numberOfPlayers = numberOfPlayers; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+    public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
 
     @Override
     public String toString() {
         return name + " (" + ageGroup + ")";
     }
+
+    // Parcelable implementation
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(teamId);
+        dest.writeString(name);
+        dest.writeString(ageGroup);
+        dest.writeString(level);
+        dest.writeString(coachId);
+        dest.writeString(coachName);
+        dest.writeString(color);
+        dest.writeInt(numberOfPlayers);
+        dest.writeLong(createdAt);
+        dest.writeLong(updatedAt);
+    }
+
+    private Team(Parcel in) {
+        teamId = in.readString();
+        name = in.readString();
+        ageGroup = in.readString();
+        level = in.readString();
+        coachId = in.readString();
+        coachName = in.readString();
+        color = in.readString();
+        numberOfPlayers = in.readInt();
+        createdAt = in.readLong();
+        updatedAt = in.readLong();
+    }
+
+    public static final Creator<Team> CREATOR = new Creator<Team>() {
+        @Override
+        public Team createFromParcel(Parcel in) {
+            return new Team(in);
+        }
+
+        @Override
+        public Team[] newArray(int size) {
+            return new Team[size];
+        }
+    };
 }

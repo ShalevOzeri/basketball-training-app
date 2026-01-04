@@ -4,7 +4,7 @@ import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -15,44 +15,36 @@ import com.example.testapp.R;
 import com.example.testapp.models.Team;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-public class TeamAdapter extends RecyclerView.Adapter<TeamAdapter.TeamViewHolder> {
+public class SelectableTeamAdapter extends RecyclerView.Adapter<SelectableTeamAdapter.TeamViewHolder> {
 
     private List<Team> teams = new ArrayList<>();
-    private final OnTeamInteractionListener listener;
-    private String userRole;  // ADMIN, COORDINATOR, COACH
-
-    public interface OnTeamInteractionListener {
-        void onTeamClick(Team team);  // Click on card - view players
-        void onEditClick(Team team);  // Click on edit button - show options
-    }
-
-    public TeamAdapter(OnTeamInteractionListener listener) {
-        this.listener = listener;
-    }
-
-    public void setUserRole(String role) {
-        this.userRole = role;
-    }
+    private Set<String> selectedTeamIds = new HashSet<>();
 
     public void setTeams(List<Team> teams) {
         this.teams = teams;
         notifyDataSetChanged();
     }
 
+    public Set<String> getSelectedTeamIds() {
+        return selectedTeamIds;
+    }
+
     @NonNull
     @Override
     public TeamViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_team, parent, false);
+                .inflate(R.layout.item_team_selectable, parent, false);
         return new TeamViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull TeamViewHolder holder, int position) {
         Team team = teams.get(position);
-        holder.bind(team, listener, userRole);
+        holder.bind(team, selectedTeamIds);
     }
 
     @Override
@@ -60,23 +52,21 @@ public class TeamAdapter extends RecyclerView.Adapter<TeamAdapter.TeamViewHolder
         return teams.size();
     }
 
-    static class TeamViewHolder extends RecyclerView.ViewHolder {
+    class TeamViewHolder extends RecyclerView.ViewHolder {
         TextView teamName, teamAgeGroup, teamCoach;
-        CardView cardView;
+        CheckBox teamCheckbox;
         View colorIndicator;
-        Button editButton;
 
         TeamViewHolder(View itemView) {
             super(itemView);
-            cardView = itemView.findViewById(R.id.cardView);
             teamName = itemView.findViewById(R.id.teamName);
             teamAgeGroup = itemView.findViewById(R.id.teamAgeGroup);
             teamCoach = itemView.findViewById(R.id.teamCoach);
+            teamCheckbox = itemView.findViewById(R.id.teamCheckbox);
             colorIndicator = itemView.findViewById(R.id.colorIndicator);
-            editButton = itemView.findViewById(R.id.editButton);
         }
 
-        void bind(Team team, OnTeamInteractionListener listener, String userRole) {
+        void bind(Team team, Set<String> selectedIds) {
             teamName.setText(team.getName());
             teamAgeGroup.setText("שכבת גיל " + team.getAgeGroup());
             teamCoach.setText("מאמן: " + team.getCoachName());
@@ -87,20 +77,26 @@ public class TeamAdapter extends RecyclerView.Adapter<TeamAdapter.TeamViewHolder
                 colorIndicator.setBackgroundColor(Color.parseColor("#3DDC84"));
             }
 
-            // Show edit button only for admin and coordinator
-            // Hide for coaches and players
-            if ("ADMIN".equals(userRole) || "COORDINATOR".equals(userRole)) {
-                editButton.setVisibility(View.VISIBLE);
-                editButton.setText("עריכה");
-            } else {
-                editButton.setVisibility(View.GONE);
-            }
-
-            // Click on card - view players
-            itemView.setOnClickListener(v -> listener.onTeamClick(team));
+            teamCheckbox.setChecked(selectedIds.contains(team.getTeamId()));
             
-            // Click on edit button - show options
-            editButton.setOnClickListener(v -> listener.onEditClick(team));
+            itemView.setOnClickListener(v -> {
+                boolean isChecked = !teamCheckbox.isChecked();
+                teamCheckbox.setChecked(isChecked);
+                
+                if (isChecked) {
+                    selectedIds.add(team.getTeamId());
+                } else {
+                    selectedIds.remove(team.getTeamId());
+                }
+            });
+            
+            teamCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) {
+                    selectedIds.add(team.getTeamId());
+                } else {
+                    selectedIds.remove(team.getTeamId());
+                }
+            });
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.example.testapp.repository;
 
+import android.util.Log;
+
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
@@ -28,14 +30,22 @@ public class TrainingRepository {
     }
 
     private void loadTrainings() {
+        // First, delete past trainings
+        deletePastTrainings();
+        
         trainingsRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 List<Training> trainings = new ArrayList<>();
+                long currentTime = System.currentTimeMillis();
+                
                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
                     Training training = snapshot.getValue(Training.class);
                     if (training != null) {
-                        trainings.add(training);
+                        // Only add trainings that haven't passed
+                        if (!isTrainingPast(training, currentTime)) {
+                            trainings.add(training);
+                        }
                     }
                 }
                 trainingsLiveData.setValue(trainings);
@@ -44,6 +54,74 @@ public class TrainingRepository {
             @Override
             public void onCancelled(DatabaseError error) {
                 errorLiveData.setValue(error.getMessage());
+            }
+        });
+    }
+    
+    private boolean isTrainingPast(Training training, long currentTime) {
+        if (training.getDate() == 0) {
+            return false; // No date set, keep it
+        }
+        
+        // Get end time in minutes
+        int endMinutes = timeToMinutes(training.getEndTime());
+        if (endMinutes < 0) {
+            return false; // Invalid time, keep it
+        }
+        
+        // Calculate the exact end time of the training
+        java.util.Calendar trainingEndTime = java.util.Calendar.getInstance();
+        trainingEndTime.setTimeInMillis(training.getDate());
+        trainingEndTime.set(java.util.Calendar.HOUR_OF_DAY, endMinutes / 60);
+        trainingEndTime.set(java.util.Calendar.MINUTE, endMinutes % 60);
+        trainingEndTime.set(java.util.Calendar.SECOND, 0);
+        trainingEndTime.set(java.util.Calendar.MILLISECOND, 0);
+        
+        return trainingEndTime.getTimeInMillis() < currentTime;
+    }
+    
+    private int timeToMinutes(String time) {
+        try {
+            if (time == null || time.isEmpty()) return -1;
+            String[] parts = time.split(":");
+            if (parts.length != 2) return -1;
+            int h = Integer.parseInt(parts[0]);
+            int m = Integer.parseInt(parts[1]);
+            if (h < 0 || h > 23 || m < 0 || m > 59) return -1;
+            return h * 60 + m;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+    
+    private void deletePastTrainings() {
+        trainingsRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                long currentTime = System.currentTimeMillis();
+                int deletedCount = 0;
+                
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    Training training = snapshot.getValue(Training.class);
+                    if (training != null && isTrainingPast(training, currentTime)) {
+                        // Delete the past training
+                        Log.d("TrainingRepository", "Deleting past training: " + training.getTeamName() + 
+                              " on " + training.getDayOfWeek() + " at " + training.getStartTime());
+                        snapshot.getRef().removeValue();
+                        deletedCount++;
+                    }
+                }
+                
+                if (deletedCount > 0) {
+                    Log.d("TrainingRepository", "Total past trainings deleted: " + deletedCount);
+                } else {
+                    Log.d("TrainingRepository", "No past trainings found to delete");
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                // Ignore errors in cleanup
             }
         });
     }

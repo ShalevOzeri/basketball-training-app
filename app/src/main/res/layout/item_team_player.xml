@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/cardView"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
@@ -12,15 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp"
-        android:background="?attr/selectableItemBackground">
-
-        <View
-            android:id="@+id/colorIndicator"
-            android:layout_width="8dp"
-            android:layout_height="match_parent"
-            android:layout_marginEnd="16dp"
-            android:background="#3DDC84" />
+        android:padding="16dp">
 
         <LinearLayout
             android:layout_width="0dp"
@@ -29,43 +20,62 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/teamName"
+                android:id="@+id/playerName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="קבוצת נוער"
-                android:textSize="18sp"
+                android:text="יוני כהן"
+                android:textSize="16sp"
                 android:textStyle="bold"
                 android:textColor="@android:color/black" />
 
             <TextView
-                android:id="@+id/teamAgeGroup"
+                android:id="@+id/playerPhone"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="כיתה ו"
+                android:text="050-1234567"
                 android:textSize="14sp"
                 android:layout_marginTop="4dp"
                 android:textColor="@android:color/darker_gray" />
 
             <TextView
-                android:id="@+id/teamCoach"
+                android:id="@+id/playerInfo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="מאמן: יוסי כהן"
+                android:text="כיתה: ו | בית ספר: בן גוריון"
                 android:textSize="14sp"
                 android:layout_marginTop="4dp"
                 android:textColor="@android:color/darker_gray" />
 
         </LinearLayout>
 
-        <Button
-            android:id="@+id/editButton"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="עריכה"
-            android:textSize="12sp"
-            android:padding="8dp"
-            android:backgroundTint="#FF9800"
-            android:textColor="@android:color/white" />
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/editButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="עריכה"
+                android:textSize="12sp"
+                android:padding="8dp"
+                android:backgroundTint="#FF9800"
+                android:textColor="@android:color/white"
+                android:layout_marginBottom="4dp" />
+
+            <Button
+                android:id="@+id/deleteButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="הסר"
+                android:textSize="12sp"
+                android:padding="8dp"
+                android:backgroundTint="#FF5252"
+                android:textColor="@android:color/white" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
