@@ -99,23 +99,19 @@ public class ScheduleActivity extends AppCompatActivity {
     }
 
     private void setupRecyclerView() {
-        Log.d(TAG, "setupRecyclerView: Initializing with default adapter");
         adapter = new TrainingAdapter(
             training -> {
                 Toast.makeText(this, training.getTeamName() + " - " + training.getStartTime(), Toast.LENGTH_SHORT).show();
             },
             training -> {
-                Log.d(TAG, "Edit training clicked");
                 Intent intent = new Intent(this, EditTrainingActivity.class);
                 intent.putExtra("TRAINING", training);
                 startActivity(intent);
             },
             training -> {
-                Log.d(TAG, "Delete training clicked");
                 showDeleteConfirmDialog(training);
             },
             training -> {
-                Log.d(TAG, "Duplicate training clicked");
                 showDuplicateDialog(training);
             }
         );
@@ -248,7 +244,6 @@ public class ScheduleActivity extends AppCompatActivity {
         // Observe filtered trainings
         viewModel.getFilteredTrainings().observe(this, trainings -> {
             if (trainings != null) {
-                Log.d(TAG, "Updating adapter with " + trainings.size() + " trainings");
                 adapter.setTrainings(trainings);
             }
         });
@@ -277,21 +272,16 @@ public class ScheduleActivity extends AppCompatActivity {
         userRepository = new UserRepository();
         FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
         if (firebaseUser != null) {
-            Log.d(TAG, "Checking permissions for user: " + firebaseUser.getUid());
             FirebaseDatabase.getInstance().getReference("users").child(firebaseUser.getUid())
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         currentUser = snapshot.getValue(User.class);
                         if (currentUser != null) {
-                            Log.d(TAG, "User role: " + currentUser.getRole());
                             boolean canEdit = currentUser.isAdmin() || currentUser.isCoordinator();
-                            Log.d(TAG, "Can edit: " + canEdit);
 
                             if (!canEdit) {
                                 fab.setVisibility(View.GONE);
-
-                                Log.d(TAG, "Re-initializing adapter for read-only mode");
                                 adapter = new TrainingAdapter(
                                     training -> {
                                         Toast.makeText(ScheduleActivity.this, training.getTeamName() + " - " + training.getStartTime(), Toast.LENGTH_SHORT).show();
@@ -306,14 +296,11 @@ public class ScheduleActivity extends AppCompatActivity {
                                     adapter.setTrainings(viewModel.getFilteredTrainings().getValue());
                                 }
                             }
-                        } else {
-                            Log.d(TAG, "User data is null");
                         }
                     }
 
                     @Override
                     public void onCancelled(@NonNull DatabaseError error) {
-                        Log.e(TAG, "Failed to load user permissions.", error.toException());
                         Toast.makeText(ScheduleActivity.this, "Failed to load user permissions.", Toast.LENGTH_SHORT).show();
                     }
                 });

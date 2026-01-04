@@ -119,11 +119,16 @@ public class TeamPlayersActivity extends AppCompatActivity {
 
                     for (DataSnapshot userSnapshot : snapshot.getChildren()) {
                         User user = userSnapshot.getValue(User.class);
-                        if (user != null && user.getTeamIds().contains(teamId)) {
-                            teamUsers.add(user);
+                        if (user != null) {
+                            // Set userId from Firebase key
+                            user.setUserId(userSnapshot.getKey());
+                            
+                            if (user.getTeamIds().contains(teamId)) {
+                                teamUsers.add(user);
+                            }
                         }
                     }
-
+                    
                     if (teamUsers.isEmpty()) {
                         adapter.setPlayers(new ArrayList<>());
                         progressBar.setVisibility(View.GONE);
@@ -301,6 +306,7 @@ public class TeamPlayersActivity extends AppCompatActivity {
                 for (DataSnapshot userSnapshot : snapshot.getChildren()) {
                     User user = userSnapshot.getValue(User.class);
                     if (user != null) {
+                        user.setUserId(userSnapshot.getKey());
                         allPlayers.add(user);
                     }
                 }

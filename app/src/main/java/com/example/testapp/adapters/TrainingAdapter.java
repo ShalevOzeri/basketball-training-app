@@ -132,13 +132,10 @@ public class TrainingAdapter extends RecyclerView.Adapter<TrainingAdapter.Traini
 
             if (duplicateListener != null) {
                 btnDuplicate.setVisibility(View.VISIBLE);
-                android.util.Log.d("TrainingAdapter", "Setting duplicate listener for training: " + training.getTeamName());
                 btnDuplicate.setOnClickListener(v -> {
-                    android.util.Log.d("TrainingAdapter", "Duplicate button clicked for: " + training.getTeamName());
                     duplicateListener.onTrainingDuplicate(training);
                 });
             } else {
-                android.util.Log.d("TrainingAdapter", "duplicateListener is NULL");
                 btnDuplicate.setVisibility(View.GONE);
             }
         }

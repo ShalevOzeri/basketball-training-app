@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -25,9 +26,13 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class AddPlayersActivity extends AppCompatActivity {
+
+    private static final String TAG = "AddPlayersActivity";
 
     private EditText searchEditText;
     private RecyclerView playersRecyclerView;
@@ -125,6 +130,9 @@ public class AddPlayersActivity extends AppCompatActivity {
                 for (DataSnapshot userSnapshot : snapshot.getChildren()) {
                     User user = userSnapshot.getValue(User.class);
                     if (user != null) {
+                        // Set userId from Firebase key
+                        user.setUserId(userSnapshot.getKey());
+                        
                         // Check if user is already in this team
                         List<String> userTeamIds = user.getTeamIds();
                         if (userTeamIds == null || !userTeamIds.contains(teamId)) {
@@ -191,17 +199,52 @@ public class AddPlayersActivity extends AppCompatActivity {
     }
 
     private void addPlayerToTeam(User player, SimpleCallback onSuccess, SimpleCallback onError) {
-        // Update user's teamIds list (single player record shared across teams)
-        List<String> teamIds = player.getTeamIds();
-        if (teamIds == null) {
-            teamIds = new ArrayList<>();
+        if (player.getUserId() == null || player.getUserId().isEmpty()) {
+            Toast.makeText(this, "שגיאה: מזהה משתמש חסר", Toast.LENGTH_SHORT).show();
+            onError.call();
+            return;
         }
-        if (!teamIds.contains(teamId)) {
-            teamIds.add(teamId);
-        }
+        
+        // Read current teamIds from Firebase to avoid overwriting existing data
+        DatabaseReference playerRef = usersRef.child(player.getUserId());
+        playerRef.child("teamIds").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                List<String> teamIds = new ArrayList<>();
+                
+                // Load existing teamIds from Firebase
+                if (snapshot.exists()) {
+                    for (DataSnapshot teamSnapshot : snapshot.getChildren()) {
+                        String tid = teamSnapshot.getValue(String.class);
+                        if (tid != null) {
+                            teamIds.add(tid);
+                        }
+                    }
+                }
+                
+                // Add current team if not already in list
+                if (!teamIds.contains(teamId)) {
+                    teamIds.add(teamId);
+                }
+                
+                // Use updateChildren instead of setValue for better permission handling
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("teamIds", teamIds);
+                
+                playerRef.updateChildren(updates)
+                    .addOnSuccessListener(aVoid -> {
+                        onSuccess.call();
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(AddPlayersActivity.this, "שגיאה: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        onError.call();
+                    });
+            }
 
-        usersRef.child(player.getUserId()).child("teamIds").setValue(teamIds)
-            .addOnSuccessListener(aVoid -> onSuccess.call())
-            .addOnFailureListener(e -> onError.call());
+            @Override
+            public void onCancelled(DatabaseError error) {
+                onError.call();
+            }
+        });
     }
 }

@@ -26,140 +26,213 @@
             android:padding="16dp"
             android:gravity="center">
 
+            <ImageView
+                android:id="@+id/appLogoImageView"
+                android:layout_width="180dp"
+                android:layout_height="180dp"
+                android:src="@drawable/app_logo"
+                android:contentDescription="@string/app_name"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="24dp"
+                android:scaleType="centerInside"
+                android:adjustViewBounds="true" />
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="TIMEOUT"
-                android:textSize="28sp"
+                android:textSize="32sp"
                 android:textStyle="bold"
                 android:textColor="#FF9800"
+                android:letterSpacing="0.1"
                 android:layout_marginBottom="32dp" />
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/allCourtsCard"
                 android:layout_width="match_parent"
-                android:layout_height="120dp"
+                android:layout_height="140dp"
                 android:layout_margin="8dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="8dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:padding="16dp"
-                    android:background="?attr/selectableItemBackground">
+                    android:padding="20dp"
+                    android:background="@drawable/button_all_courts_gradient">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🏟️"
-                        android:textSize="36sp" />
+                    <FrameLayout
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:background="@drawable/icon_circle_white">
+                        
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🏟️"
+                            android:textSize="40sp"
+                            android:layout_gravity="center" />
+                    </FrameLayout>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="תצוגת כל המגרשים"
-                        android:textSize="18sp"
+                        android:textSize="20sp"
                         android:textStyle="bold"
-                        android:layout_marginTop="8dp" />
+                        android:layout_marginTop="8dp"
+                        android:textColor="@android:color/white"
+                        android:shadowColor="#80000000"
+                        android:shadowDx="2"
+                        android:shadowDy="2"
+                        android:shadowRadius="3" />
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="תצוגה כללית של כל המגרשים"
+                        android:textSize="12sp"
+                        android:layout_marginTop="4dp"
+                        android:textColor="#FFFFFFCC" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/courtsCard"
                 android:layout_width="match_parent"
-                android:layout_height="120dp"
+                android:layout_height="140dp"
                 android:layout_margin="8dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="8dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:padding="16dp"
-                    android:background="?attr/selectableItemBackground">
+                    android:padding="20dp"
+                    android:background="@drawable/button_courts_gradient">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🏀"
-                        android:textSize="36sp" />
+                    <ImageView
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:src="@drawable/court_manager_logo"
+                        android:contentDescription="Courts"
+                        android:scaleType="fitCenter" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="ניהול מגרשים"
-                        android:textSize="18sp"
+                        android:textSize="20sp"
                         android:textStyle="bold"
-                        android:layout_marginTop="8dp" />
+                        android:layout_marginTop="8dp"
+                        android:textColor="@android:color/white"
+                        android:shadowColor="#80000000"
+                        android:shadowDx="2"
+                        android:shadowDy="2"
+                        android:shadowRadius="3" />
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="הוספה ועריכת מגרשים"
+                        android:textSize="12sp"
+                        android:layout_marginTop="4dp"
+                        android:textColor="#FFFFFFCC" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/teamsCard"
                 android:layout_width="match_parent"
-                android:layout_height="120dp"
+                android:layout_height="140dp"
                 android:layout_margin="8dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="8dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:padding="16dp"
-                    android:background="?attr/selectableItemBackground">
+                    android:padding="20dp"
+                    android:background="@drawable/button_teams_gradient">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="👥"
-                        android:textSize="36sp" />
+                    <ImageView
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:src="@drawable/team_manager_logo"
+                        android:contentDescription="Teams"
+                        android:scaleType="fitCenter" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="ניהול קבוצות"
-                        android:textSize="18sp"
+                        android:textSize="20sp"
                         android:textStyle="bold"
-                        android:layout_marginTop="8dp" />
+                        android:layout_marginTop="8dp"
+                        android:textColor="@android:color/white"
+                        android:shadowColor="#80000000"
+                        android:shadowDx="2"
+                        android:shadowDy="2"
+                        android:shadowRadius="3" />
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ניהול שחקנים וקבוצות"
+                        android:textSize="12sp"
+                        android:layout_marginTop="4dp"
+                        android:textColor="#FFFFFFCC" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/scheduleCard"
                 android:layout_width="match_parent"
-                android:layout_height="120dp"
+                android:layout_height="140dp"
                 android:layout_margin="8dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="8dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:padding="16dp"
-                    android:background="?attr/selectableItemBackground">
+                    android:padding="20dp"
+                    android:background="@drawable/button_schedule_gradient">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="📅"
-                        android:textSize="36sp" />
+                        android:textSize="48sp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="לוח אימונים"
-                        android:textSize="18sp"
+                        android:textSize="20sp"
                         android:textStyle="bold"
-                        android:layout_marginTop="8dp" />
+                        android:layout_marginTop="8dp"
+                        android:textColor="@android:color/white"
+                        android:shadowColor="#80000000"
+                        android:shadowDx="2"
+                        android:shadowDy="2"
+                        android:shadowRadius="3" />
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="צפייה וניהול אימונים"
+                        android:textSize="12sp"
+                        android:layout_marginTop="4dp"
+                        android:textColor="#FFFFFFCC" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -232,35 +305,47 @@
             <androidx.cardview.widget.CardView
                 android:id="@+id/manageUsersCard"
                 android:layout_width="match_parent"
-                android:layout_height="120dp"
+                android:layout_height="140dp"
                 android:layout_margin="8dp"
                 android:visibility="gone"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="#FFF3E0">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="8dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:padding="16dp"
-                    android:background="?attr/selectableItemBackground">
+                    android:padding="20dp"
+                    android:background="@drawable/button_admin_gradient">
+
+                    <ImageView
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:src="@drawable/admin_logo"
+                        android:contentDescription="Admin"
+                        android:scaleType="fitCenter" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="👑"
-                        android:textSize="36sp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="ניהול משתמשים (אדמין)"
-                        android:textSize="18sp"
+                        android:text="ניהול משתמשים"
+                        android:textSize="20sp"
                         android:textStyle="bold"
                         android:layout_marginTop="8dp"
-                        android:textColor="#E65100" />
+                        android:textColor="@android:color/white"
+                        android:shadowColor="#80000000"
+                        android:shadowDx="2"
+                        android:shadowDy="2"
+                        android:shadowRadius="3" />
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="אדמין בלבד"
+                        android:textSize="12sp"
+                        android:layout_marginTop="4dp"
+                        android:textColor="#FFFFFFCC" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -300,4 +385,3 @@
         </LinearLayout>
     </ScrollView>
 </LinearLayout>
-

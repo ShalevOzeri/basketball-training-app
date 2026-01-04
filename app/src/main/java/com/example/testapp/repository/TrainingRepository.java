@@ -105,17 +105,9 @@ public class TrainingRepository {
                     Training training = snapshot.getValue(Training.class);
                     if (training != null && isTrainingPast(training, currentTime)) {
                         // Delete the past training
-                        Log.d("TrainingRepository", "Deleting past training: " + training.getTeamName() + 
-                              " on " + training.getDayOfWeek() + " at " + training.getStartTime());
                         snapshot.getRef().removeValue();
                         deletedCount++;
                     }
-                }
-                
-                if (deletedCount > 0) {
-                    Log.d("TrainingRepository", "Total past trainings deleted: " + deletedCount);
-                } else {
-                    Log.d("TrainingRepository", "No past trainings found to delete");
                 }
             }
 

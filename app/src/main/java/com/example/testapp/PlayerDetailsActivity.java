@@ -27,6 +27,8 @@ import com.google.firebase.database.ValueEventListener;
 
 public class PlayerDetailsActivity extends AppCompatActivity {
 
+    private static final String[] SHIRT_SIZES = {"8", "10", "12", "14", "16", "18", "S", "M", "L", "XL", "XXL", "XXXL"};
+
     private EditText firstNameEditText, lastNameEditText, gradeEditText, schoolEditText;
     private EditText playerPhoneEditText, parentPhoneEditText, idNumberEditText, birthDateEditText;
     private Spinner shirtSizeSpinner;
@@ -35,7 +37,7 @@ public class PlayerDetailsActivity extends AppCompatActivity {
     private DatabaseReference playersRef;
     private DatabaseReference usersRef;
     private String userId;
-    private String playerId;  // Add playerId field
+    private String playerId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,26 +104,22 @@ public class PlayerDetailsActivity extends AppCompatActivity {
     }
 
     private void setupShirtSizeSpinner() {
-        String[] sizes = {"8", "10", "12", "14", "16", "18", "S", "M", "L", "XL", "XXL", "XXXL"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, sizes);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, SHIRT_SIZES);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         shirtSizeSpinner.setAdapter(adapter);
     }
 
     private void loadPlayerData() {
         progressBar.setVisibility(View.VISIBLE);
-        android.util.Log.d("PlayerDetailsActivity", "Loading player data for userId: " + userId);
         
         // First check if we can load User data
         if (userId != null && !userId.isEmpty()) {
             usersRef.child(userId).addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot snapshot) {
-                    android.util.Log.d("PlayerDetailsActivity", "User data snapshot received, exists: " + snapshot.exists());
                     if (snapshot.exists()) {
                         com.example.testapp.models.User user = snapshot.getValue(com.example.testapp.models.User.class);
                         if (user != null) {
-                            android.util.Log.d("PlayerDetailsActivity", "User loaded: " + user.getName());
                             // Pre-fill name and phone from User data
                             String fullName = user.getName() != null ? user.getName() : "";
                             if (!fullName.isEmpty()) {
@@ -140,41 +138,34 @@ public class PlayerDetailsActivity extends AppCompatActivity {
                             
                             // Get playerId from User record
                             String playerIdFromUser = user.getPlayerId();
-                            android.util.Log.d("PlayerDetailsActivity", "PlayerId from user: " + playerIdFromUser);
                             
                             // Load player data using playerId from User
                             if (playerIdFromUser != null && !playerIdFromUser.isEmpty()) {
                                 loadPlayerByPlayerId(playerIdFromUser);
                             } else {
-                                android.util.Log.d("PlayerDetailsActivity", "No playerId in user record");
                                 loadPlayerSpecificData();
                             }
                         }
                     } else {
-                        android.util.Log.d("PlayerDetailsActivity", "User snapshot doesn't exist for: " + userId);
                         loadPlayerSpecificData();
                     }
                 }
 
                 @Override
                 public void onCancelled(DatabaseError error) {
-                    android.util.Log.e("PlayerDetailsActivity", "Error loading user data: " + error.getCode() + " - " + error.getMessage());
                     // Continue to load player data even if user load fails
                     loadPlayerSpecificData();
                 }
             });
         } else {
-            android.util.Log.d("PlayerDetailsActivity", "userId is null or empty, proceeding to load player data");
             loadPlayerSpecificData();
         }
     }
     
     private void loadPlayerByPlayerId(String playerIdFromUser) {
-        android.util.Log.d("PlayerDetailsActivity", "Loading player by playerId from user: " + playerIdFromUser);
         playersRef.child(playerIdFromUser).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
-                android.util.Log.d("PlayerDetailsActivity", "Player data loaded by playerId, exists: " + snapshot.exists());
                 progressBar.setVisibility(View.GONE);
                 
                 if (snapshot.exists()) {
@@ -182,14 +173,11 @@ public class PlayerDetailsActivity extends AppCompatActivity {
                     if (player != null) {
                         populatePlayerFields(player);
                     }
-                } else {
-                    android.util.Log.d("PlayerDetailsActivity", "No player found with playerId: " + playerIdFromUser);
                 }
             }
 
             @Override
             public void onCancelled(DatabaseError error) {
-                android.util.Log.e("PlayerDetailsActivity", "Error loading player by playerId: " + error.getMessage());
                 progressBar.setVisibility(View.GONE);
                 Toast.makeText(PlayerDetailsActivity.this, "שגיאה בטעינת פרטי השחקן: " + error.getMessage(), Toast.LENGTH_SHORT).show();
             }
@@ -197,7 +185,6 @@ public class PlayerDetailsActivity extends AppCompatActivity {
     }
     
     private void loadPlayerSpecificData() {
-        android.util.Log.d("PlayerDetailsActivity", "Loading player-specific data, playerId from intent: " + playerId);
         
         if (playerId != null && !playerId.isEmpty()) {
             loadPlayerByPlayerId(playerId);
@@ -209,12 +196,10 @@ public class PlayerDetailsActivity extends AppCompatActivity {
 
     private void loadPlayerByUserId() {
         if (userId == null || userId.isEmpty()) {
-            android.util.Log.d("PlayerDetailsActivity", "Cannot load by userId: userId empty");
             progressBar.setVisibility(View.GONE);
             return;
         }
 
-        android.util.Log.d("PlayerDetailsActivity", "Fallback load player by userId: " + userId);
         playersRef.orderByChild("userId").equalTo(userId).limitToFirst(1)
             .addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
@@ -224,20 +209,16 @@ public class PlayerDetailsActivity extends AppCompatActivity {
                         for (DataSnapshot child : snapshot.getChildren()) {
                             Player player = child.getValue(Player.class);
                             if (player != null) {
-                                android.util.Log.d("PlayerDetailsActivity", "Loaded player by userId: " + player.getPlayerId());
                                 populatePlayerFields(player);
                                 break;
                             }
                         }
-                    } else {
-                        android.util.Log.d("PlayerDetailsActivity", "No player found for userId fallback");
                     }
                 }
 
                 @Override
                 public void onCancelled(DatabaseError error) {
                     progressBar.setVisibility(View.GONE);
-                    android.util.Log.e("PlayerDetailsActivity", "Error loading player by userId: " + error.getMessage());
                 }
             });
     }
@@ -265,9 +246,8 @@ public class PlayerDetailsActivity extends AppCompatActivity {
         birthDateEditText.setText(player.getBirthDate() != null ? player.getBirthDate() : "");
         
         // Set shirt size
-        String[] sizes = {"8", "10", "12", "14", "16", "18", "S", "M", "L", "XL", "XXL", "XXXL"};
-        for (int i = 0; i < sizes.length; i++) {
-            if (sizes[i].equals(player.getShirtSize())) {
+        for (int i = 0; i < SHIRT_SIZES.length; i++) {
+            if (SHIRT_SIZES[i].equals(player.getShirtSize())) {
                 shirtSizeSpinner.setSelection(i);
                 break;
             }

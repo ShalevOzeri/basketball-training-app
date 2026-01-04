@@ -148,8 +148,11 @@ public class TeamsActivity extends AppCompatActivity {
                 coachList.clear();
                 for (DataSnapshot userSnapshot : snapshot.getChildren()) {
                     User user = userSnapshot.getValue(User.class);
-                    if (user != null && ("COACH".equals(user.getRole()) || "COORDINATOR".equals(user.getRole()))) {
-                        coachList.add(user);
+                    if (user != null) {
+                        user.setUserId(userSnapshot.getKey());
+                        if ("COACH".equals(user.getRole()) || "COORDINATOR".equals(user.getRole())) {
+                            coachList.add(user);
+                        }
                     }
                 }
             }
