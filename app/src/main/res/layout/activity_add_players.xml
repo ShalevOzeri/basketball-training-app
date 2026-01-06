@@ -13,21 +13,80 @@
         android:background="@android:color/white"
         app:elevation="4dp" />
 
-    <EditText
-        android:id="@+id/searchEditText"
+    <!-- Filters Section - Collapsible -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="חפש לפי שם שחקן"
-        android:padding="16dp"
-        android:inputType="text"
-        android:textDirection="rtl"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="@drawable/edit_text_background"
-        android:textColor="@android:color/black"
-        android:textColorHint="@android:color/darker_gray" />
+        android:orientation="vertical"
+        android:background="#F5F5F5"
+        android:elevation="2dp">
+
+        <!-- Filter Header - Always visible -->
+        <LinearLayout
+            android:id="@+id/filterHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="12dp"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="סינון שחקנים"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:textColor="#000000" />
+
+            <ImageView
+                android:id="@+id/expandCollapseIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/arrow_down_float"
+                android:rotation="180"
+                android:contentDescription="הרחב/כווץ" />
+
+        </LinearLayout>
+
+        <!-- Filters Content - Collapsible -->
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/filtersScrollView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="visible"
+            android:fillViewport="false">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:paddingTop="0dp">
+
+                <!-- Search filter -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="חיפוש:"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="4dp" />
+
+                <androidx.appcompat.widget.SearchView
+                    android:id="@+id/searchView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:queryHint="חפש שחקן..."
+                    android:iconifiedByDefault="false"
+                    android:layout_marginBottom="8dp" />
+
+            </LinearLayout>
+
+        </androidx.core.widget.NestedScrollView>
+
+    </LinearLayout>
 
     <FrameLayout
         android:layout_width="match_parent"

@@ -34,6 +34,10 @@ public class TeamPlayersAdapter extends RecyclerView.Adapter<TeamPlayersAdapter.
         notifyDataSetChanged();
     }
 
+    public List<Player> getPlayers() {
+        return players;
+    }
+
     @NonNull
     @Override
     public PlayerViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -54,7 +58,7 @@ public class TeamPlayersAdapter extends RecyclerView.Adapter<TeamPlayersAdapter.
     }
 
     static class PlayerViewHolder extends RecyclerView.ViewHolder {
-        TextView playerName, playerPhone, playerInfo;
+        TextView playerName, playerPhone, playerInfo, playerJerseyNumber;
         Button editButton, deleteButton;
 
         PlayerViewHolder(View itemView) {
@@ -62,6 +66,7 @@ public class TeamPlayersAdapter extends RecyclerView.Adapter<TeamPlayersAdapter.
             playerName = itemView.findViewById(R.id.playerName);
             playerPhone = itemView.findViewById(R.id.playerPhone);
             playerInfo = itemView.findViewById(R.id.playerInfo);
+            playerJerseyNumber = itemView.findViewById(R.id.playerJerseyNumber);
             editButton = itemView.findViewById(R.id.editButton);
             deleteButton = itemView.findViewById(R.id.deleteButton);
         }
@@ -70,6 +75,13 @@ public class TeamPlayersAdapter extends RecyclerView.Adapter<TeamPlayersAdapter.
             playerName.setText(player.getFirstName() + " " + player.getLastName());
             playerPhone.setText(player.getPlayerPhone() != null ? player.getPlayerPhone() : "אין טלפון");
             playerInfo.setText("כיתה: " + player.getGrade() + " | בית ספר: " + (player.getSchool() != null ? player.getSchool() : "לא צויין"));
+            
+            String jerseyNumber = player.getJerseyNumber();
+            if (jerseyNumber != null && !jerseyNumber.isEmpty()) {
+                playerJerseyNumber.setText("מספר גופיה: " + jerseyNumber);
+            } else {
+                playerJerseyNumber.setText("מספר גופיה: -");
+            }
 
             editButton.setOnClickListener(v -> listener.onEditPlayer(player));
             deleteButton.setOnClickListener(v -> listener.onDeletePlayer(player));

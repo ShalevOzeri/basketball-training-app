@@ -18,7 +18,7 @@ import java.util.List;
 
 public class TrainingAdapter extends RecyclerView.Adapter<TrainingAdapter.TrainingViewHolder> {
 
-    private List<Training> trainings = new ArrayList<>();
+    public List<Training> trainings = new ArrayList<>();
     private final OnTrainingClickListener listener;
     private final OnTrainingEditListener editListener;
     private final OnTrainingDeleteListener deleteListener;
@@ -99,8 +99,9 @@ public class TrainingAdapter extends RecyclerView.Adapter<TrainingAdapter.Traini
             courtName.setText("מגרש: " + training.getCourtName());
             dayOfWeek.setText(training.getDayOfWeek());
             
-            // Format and display date using UTC timezone
-            java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+            // Format and display date using Hebrew locale and UTC timezone
+            java.util.Locale hebrewLocale = new java.util.Locale("he", "IL");
+            java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("dd/MM/yyyy", hebrewLocale);
             dateFormat.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
             String formattedDate = dateFormat.format(new java.util.Date(training.getDate()));
             trainingDate.setText(formattedDate);

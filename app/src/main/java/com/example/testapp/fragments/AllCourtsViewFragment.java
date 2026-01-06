@@ -1,0 +1,828 @@
+package com.example.testapp.fragments;
+
+import android.graphics.Color;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.widget.SearchView;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+
+import com.example.testapp.R;
+import com.example.testapp.models.Court;
+import com.example.testapp.models.Team;
+import com.example.testapp.models.Training;
+import com.example.testapp.models.User;
+import com.example.testapp.viewmodel.CourtViewModel;
+import com.example.testapp.viewmodel.TrainingViewModel;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import android.content.SharedPreferences;
+
+public class AllCourtsViewFragment extends Fragment {
+
+    private ScrollView scrollView;
+    private LinearLayout courtsContainer;
+    private SearchView searchViewCourts;
+    private SearchView searchViewTeams;
+    private ChipGroup chipGroupCourts;
+    private ChipGroup chipGroupDays;
+    private ChipGroup chipGroupTeams;
+    private LinearLayout filterHeader;
+    private androidx.core.widget.NestedScrollView filtersScrollView;
+    private ImageView expandCollapseIcon;
+    private boolean isFiltersExpanded = false;
+    private MaterialButton btnSelectAllCourts;
+    private MaterialButton btnSelectAllDays;
+    private MaterialButton btnSelectAllTeams;
+    private CourtViewModel courtViewModel;
+    private TrainingViewModel trainingViewModel;
+    private SharedPreferences sharedPreferences;
+    private static final String PREFS_NAME = "AllCourtsViewPreferences";
+    private static final String KEY_SELECTED_COURTS = "selected_courts";
+    private static final String KEY_SELECTED_DAYS = "selected_days";
+    private static final String KEY_SELECTED_TEAMS = "selected_teams";
+
+    private List<Court> courts = new ArrayList<>();
+    private List<Training> trainings = new ArrayList<>();
+    private List<Team> allTeams = new ArrayList<>();
+
+    private Set<String> selectedCourtIds = new HashSet<>();
+    private Set<String> selectedDays = new HashSet<>();
+    private Set<String> selectedTeamIds = new HashSet<>();
+    private boolean showOnlyThisWeek = true;
+    
+    private User currentUser;
+    private boolean isPlayer = false;
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_all_courts_view, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        // Initialize SharedPreferences
+        sharedPreferences = requireContext().getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE);
+        
+        initializeViews(view);
+        loadSavedFilters(); // Load saved filters before loading user
+        loadCurrentUser();
+    }
+
+    private void loadSavedFilters() {
+        // Load saved filter selections from SharedPreferences
+        String savedCourts = sharedPreferences.getString(KEY_SELECTED_COURTS, "");
+        String savedDays = sharedPreferences.getString(KEY_SELECTED_DAYS, "");
+        String savedTeams = sharedPreferences.getString(KEY_SELECTED_TEAMS, "");
+        
+        if (!savedCourts.isEmpty()) {
+            selectedCourtIds = new HashSet<>(java.util.Arrays.asList(savedCourts.split(",")));
+        }
+        if (!savedDays.isEmpty()) {
+            selectedDays = new HashSet<>(java.util.Arrays.asList(savedDays.split(",")));
+        }
+        if (!savedTeams.isEmpty()) {
+            selectedTeamIds = new HashSet<>(java.util.Arrays.asList(savedTeams.split(",")));
+        }
+    }
+
+    private void saveFilters() {
+        // Save current filter selections to SharedPreferences
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString(KEY_SELECTED_COURTS, String.join(",", selectedCourtIds));
+        editor.putString(KEY_SELECTED_DAYS, String.join(",", selectedDays));
+        editor.putString(KEY_SELECTED_TEAMS, String.join(",", selectedTeamIds));
+        editor.apply();
+    }
+
+    private void loadCurrentUser() {
+        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+            String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            FirebaseDatabase.getInstance().getReference("users").child(userId)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        if (!isAdded() || getContext() == null) {
+                            return; // Fragment not attached, skip update
+                        }
+                        
+                        currentUser = snapshot.getValue(User.class);
+                        if (currentUser != null && "PLAYER".equals(currentUser.getRole())) {
+                            isPlayer = true;
+                            android.util.Log.d("AllCourtsView", "Loaded player. UserId: " + currentUser.getUserId() + ", Teams: " + currentUser.getTeamIds());
+                        }
+                        setupFilters();
+                        setupViewModels();
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        setupFilters();
+                        setupViewModels();
+                    }
+                });
+        } else {
+            setupFilters();
+            setupViewModels();
+        }
+    }
+
+    private void initializeViews(View view) {
+        scrollView = view.findViewById(R.id.scrollView);
+        courtsContainer = view.findViewById(R.id.courtsContainer);
+        searchViewCourts = view.findViewById(R.id.searchViewCourts);
+        searchViewTeams = view.findViewById(R.id.searchViewTeams);
+        chipGroupCourts = view.findViewById(R.id.chipGroupCourts);
+        chipGroupDays = view.findViewById(R.id.chipGroupDays);
+        chipGroupTeams = view.findViewById(R.id.chipGroupTeams);
+        filterHeader = view.findViewById(R.id.filterHeader);
+        filtersScrollView = view.findViewById(R.id.filtersScrollView);
+        expandCollapseIcon = view.findViewById(R.id.expandCollapseIcon);
+        btnSelectAllCourts = view.findViewById(R.id.btnSelectAllCourts);
+        btnSelectAllDays = view.findViewById(R.id.btnSelectAllDays);
+        btnSelectAllTeams = view.findViewById(R.id.btnSelectAllTeams);
+
+        setupExpandCollapse();
+        setupSelectAllButtons();
+    }
+
+    private void setupExpandCollapse() {
+        filterHeader.setOnClickListener(v -> toggleFilters());
+    }
+
+    private void toggleFilters() {
+        isFiltersExpanded = !isFiltersExpanded;
+
+        if (isFiltersExpanded) {
+            // הרחבה
+            filtersScrollView.setVisibility(View.VISIBLE);
+            ViewGroup.LayoutParams params = filtersScrollView.getLayoutParams();
+            params.height = (int) (getResources().getDisplayMetrics().heightPixels * 0.35);
+            filtersScrollView.setLayoutParams(params);
+            expandCollapseIcon.setRotation(180);
+        } else {
+            // כיווץ
+            filtersScrollView.setVisibility(View.GONE);
+            expandCollapseIcon.setRotation(0);
+        }
+    }
+
+    private void setupSelectAllButtons() {
+        btnSelectAllCourts.setOnClickListener(v -> selectAllCourts());
+        btnSelectAllDays.setOnClickListener(v -> selectAllDays());
+        btnSelectAllTeams.setOnClickListener(v -> selectAllTeams());
+    }
+
+    private void selectAllCourts() {
+        // בדוק אם כל הנראים מסומנים
+        boolean allChecked = true;
+        for (int i = 0; i < chipGroupCourts.getChildCount(); i++) {
+            View child = chipGroupCourts.getChildAt(i);
+            if (child instanceof Chip && child.getVisibility() == View.VISIBLE) {
+                if (!((Chip) child).isChecked()) {
+                    allChecked = false;
+                    break;
+                }
+            }
+        }
+        
+        // אם כל הנראים מסומנים, בטל את הכל. אחרת, סמן את הכל
+        for (int i = 0; i < chipGroupCourts.getChildCount(); i++) {
+            View child = chipGroupCourts.getChildAt(i);
+            if (child instanceof Chip && child.getVisibility() == View.VISIBLE) {
+                ((Chip) child).setChecked(!allChecked);
+            }
+        }
+        saveFilters();
+    }
+
+    private void selectAllDays() {
+        // בדוק אם כל הימים מסומנים
+        boolean allChecked = true;
+        for (int i = 0; i < chipGroupDays.getChildCount(); i++) {
+            View child = chipGroupDays.getChildAt(i);
+            if (child instanceof Chip) {
+                if (!((Chip) child).isChecked()) {
+                    allChecked = false;
+                    break;
+                }
+            }
+        }
+        
+        // אם כל הימים מסומנים, בטל את הכל. אחרת, סמן את הכל
+        for (int i = 0; i < chipGroupDays.getChildCount(); i++) {
+            View child = chipGroupDays.getChildAt(i);
+            if (child instanceof Chip) {
+                ((Chip) child).setChecked(!allChecked);
+            }
+        }
+        saveFilters();
+    }
+
+    private void selectAllTeams() {
+        // בדוק אם כל הנראים מסומנים
+        boolean allChecked = true;
+        for (int i = 0; i < chipGroupTeams.getChildCount(); i++) {
+            View child = chipGroupTeams.getChildAt(i);
+            if (child instanceof Chip && child.getVisibility() == View.VISIBLE) {
+                if (!((Chip) child).isChecked()) {
+                    allChecked = false;
+                    break;
+                }
+            }
+        }
+        
+        // אם כל הנראים מסומנים, בטל את הכל. אחרת, סמן את הכל
+        for (int i = 0; i < chipGroupTeams.getChildCount(); i++) {
+            View child = chipGroupTeams.getChildAt(i);
+            if (child instanceof Chip && child.getVisibility() == View.VISIBLE) {
+                ((Chip) child).setChecked(!allChecked);
+            }
+        }
+        saveFilters();
+    }
+
+    private void setupFilters() {
+        // Setup day filter chips
+        setupDayChips();
+
+        // Setup search view for courts
+        searchViewCourts.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                filterCourtChips(newText);
+                return true;
+            }
+        });
+
+        // Setup search view for teams
+        searchViewTeams.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                filterTeamChips(newText);
+                return true;
+            }
+        });
+    }
+
+    private void setupDayChips() {
+        chipGroupDays.removeAllViews();
+        
+        // Get current week days
+        Calendar now = Calendar.getInstance();
+        Calendar weekStart = (Calendar) now.clone();
+        weekStart.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
+        
+        String[] days = {"ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"};
+        String[] dayValues = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+
+        // Only show chips for current week days
+        for (int i = 0; i < 7; i++) {
+            Calendar dayCheck = (Calendar) weekStart.clone();
+            dayCheck.add(Calendar.DAY_OF_WEEK, i);
+            String dayName = new SimpleDateFormat("EEEE", Locale.ENGLISH).format(dayCheck.getTime());
+            
+            // Find matching day
+            for (int j = 0; j < dayValues.length; j++) {
+                if (dayValues[j].equals(dayName)) {
+                    Chip chip = new Chip(requireContext());
+                    chip.setText(days[j]);
+                    chip.setCheckable(true);
+                    chip.setCheckedIconVisible(true);
+                    
+                    // בדוק אם יום זה היה שמור קודם לכן, אחרת סמן כברירת מחדל
+                    boolean isChecked = selectedDays.isEmpty() || selectedDays.contains(dayValues[j]);
+                    chip.setChecked(isChecked);
+                    
+                    if (isChecked && selectedDays.isEmpty()) {
+                        selectedDays.add(dayValues[j]);
+                    }
+                    
+                    final String dayValue = dayValues[j];
+                    chip.setOnCheckedChangeListener((buttonView, checked) -> {
+                        if (checked) {
+                            selectedDays.add(dayValue);
+                        } else {
+                            selectedDays.remove(dayValue);
+                        }
+                        saveFilters(); // Save changes
+                        updateUI();
+                    });
+
+                    chipGroupDays.addView(chip);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void setupViewModels() {
+        courtViewModel = new ViewModelProvider(this).get(CourtViewModel.class);
+        trainingViewModel = new ViewModelProvider(this).get(TrainingViewModel.class);
+
+        courtViewModel.getCourts().observe(getViewLifecycleOwner(), courtsList -> {
+            courts = courtsList;
+            setupCourtChips();
+            updateUI();
+        });
+
+        // Use getTrainings() instead of getFilteredTrainings() to show all trainings including past ones
+        trainingViewModel.getTrainings().observe(getViewLifecycleOwner(), trainingsList -> {
+            trainings = trainingsList != null ? trainingsList : new ArrayList<>();
+            updateUI();
+        });
+
+        loadTeams();
+    }
+
+    private void setupCourtChips() {
+        // Save previously selected courts before clearing
+        Set<String> previouslySelectedCourts = new HashSet<>(selectedCourtIds);
+        
+        chipGroupCourts.removeAllViews();
+        selectedCourtIds.clear();
+
+        for (Court court : courts) {
+            addCourtChip(court);
+            // Restore previously selected court
+            if (previouslySelectedCourts.contains(court.getCourtId())) {
+                selectedCourtIds.add(court.getCourtId());
+            }
+        }
+    }
+
+    private void addCourtChip(Court court) {
+        Chip chip = new Chip(requireContext());
+        chip.setText(court.getName());
+        chip.setCheckable(true);
+        chip.setCheckedIconVisible(true);
+        chip.setChecked(selectedCourtIds.isEmpty() || selectedCourtIds.contains(court.getCourtId())); // Check if previously selected
+        chip.setTag(court);
+
+        chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                selectedCourtIds.add(court.getCourtId());
+            } else {
+                selectedCourtIds.remove(court.getCourtId());
+            }
+            saveFilters(); // Save changes
+            updateUI();
+        });
+
+        chipGroupCourts.addView(chip);
+    }
+
+    private void filterCourtChips(String query) {
+        String lowerQuery = query.toLowerCase();
+        for (int i = 0; i < chipGroupCourts.getChildCount(); i++) {
+            View child = chipGroupCourts.getChildAt(i);
+            if (child instanceof Chip) {
+                Chip chip = (Chip) child;
+                Court court = (Court) chip.getTag();
+                if (court != null) {
+                    boolean matches = court.getName().toLowerCase().contains(lowerQuery);
+                    chip.setVisibility(matches ? View.VISIBLE : View.GONE);
+                }
+            }
+        }
+    }
+
+    private void loadTeams() {
+        FirebaseDatabase.getInstance().getReference("teams")
+            .addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    if (!isAdded() || getContext() == null) {
+                        return; // Fragment not attached, skip update
+                    }
+                    
+                    // Save previously selected teams before clearing
+                    Set<String> previouslySelectedTeams = new HashSet<>(selectedTeamIds);
+                    
+                    allTeams.clear();
+                    chipGroupTeams.removeAllViews();
+                    selectedTeamIds.clear();
+
+                    for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                        Team team = snapshot.getValue(Team.class);
+                        if (team != null) {
+                            allTeams.add(team);
+                            
+                            // לשחקן - הוסף רק את הקבוצות שלו
+                            if (isPlayer) {
+                                if (currentUser.getTeamIds() != null && 
+                                    currentUser.getTeamIds().contains(team.getTeamId())) {
+                                    addTeamChip(team);
+                                    // Restore previously selected team
+                                    if (previouslySelectedTeams.contains(team.getTeamId())) {
+                                        selectedTeamIds.add(team.getTeamId());
+                                    }
+                                }
+                            } else {
+                                // לא שחקן - הוסף הכל
+                                addTeamChip(team);
+                                // Restore previously selected team
+                                if (previouslySelectedTeams.contains(team.getTeamId())) {
+                                    selectedTeamIds.add(team.getTeamId());
+                                }
+                            }
+                        }
+                    }
+                    
+                    updateUI();
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError error) {
+                    if (isAdded() && getContext() != null) {
+                        Toast.makeText(requireContext(), "שגיאה בטעינת קבוצות", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+    }
+
+    private void addTeamChip(Team team) {
+        Chip chip = new Chip(requireContext());
+        chip.setText(team.getName());
+        chip.setCheckable(true);
+        chip.setCheckedIconVisible(true);
+        chip.setChecked(selectedTeamIds.isEmpty() || selectedTeamIds.contains(team.getTeamId())); // Check if previously selected
+        chip.setTag(team);
+
+        chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                selectedTeamIds.add(team.getTeamId());
+            } else {
+                selectedTeamIds.remove(team.getTeamId());
+            }
+            saveFilters(); // Save changes
+            updateUI();
+        });
+        
+        chipGroupTeams.addView(chip);
+    }
+
+    private void filterTeamChips(String query) {
+        String lowerQuery = query.toLowerCase();
+        for (int i = 0; i < chipGroupTeams.getChildCount(); i++) {
+            View child = chipGroupTeams.getChildAt(i);
+            if (child instanceof Chip) {
+                Chip chip = (Chip) child;
+                Team team = (Team) chip.getTag();
+                if (team != null) {
+                    boolean matches = team.getName().toLowerCase().contains(lowerQuery);
+                    chip.setVisibility(matches ? View.VISIBLE : View.GONE);
+                }
+            }
+        }
+    }
+
+    private void updateUI() {
+        courtsContainer.removeAllViews();
+        
+        if (courts == null || courts.isEmpty()) {
+            TextView emptyView = new TextView(requireContext());
+            emptyView.setText("אין מגרשים במערכת");
+            emptyView.setTextColor(Color.GRAY);
+            emptyView.setTextSize(16);
+            emptyView.setPadding(32, 32, 32, 32);
+            emptyView.setGravity(android.view.Gravity.CENTER);
+            courtsContainer.addView(emptyView);
+            return;
+        }
+
+        // Get current week bounds for filtering
+        Calendar now = Calendar.getInstance();
+        Calendar weekStart = (Calendar) now.clone();
+        weekStart.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
+        weekStart.set(Calendar.HOUR_OF_DAY, 0);
+        weekStart.set(Calendar.MINUTE, 0);
+        weekStart.set(Calendar.SECOND, 0);
+        
+        Calendar weekEnd = (Calendar) weekStart.clone();
+        weekEnd.add(Calendar.DAY_OF_WEEK, 7);
+        
+        long weekStartMillis = weekStart.getTimeInMillis();
+        long weekEndMillis = weekEnd.getTimeInMillis();
+
+        Set<String> courtsForSelectedTeams = null;
+        if (!selectedTeamIds.isEmpty()) {
+            courtsForSelectedTeams = new HashSet<>();
+            for (Training training : trainings) {
+                if (selectedTeamIds.contains(training.getTeamId())) {
+                    courtsForSelectedTeams.add(training.getCourtId());
+                }
+            }
+        }
+
+        for (Court court : courts) {
+            // Apply court filter (multi-select)
+            if (!selectedCourtIds.isEmpty() && !selectedCourtIds.contains(court.getCourtId())) {
+                continue;
+            }
+
+            if (courtsForSelectedTeams != null && !courtsForSelectedTeams.contains(court.getCourtId())) {
+                continue;
+            }
+
+            View courtView = createCourtView(court, weekStartMillis, weekEndMillis);
+            courtsContainer.addView(courtView);
+        }
+    }
+
+    private View createCourtView(Court court, long weekStartMillis, long weekEndMillis) {
+        LinearLayout courtLayout = new LinearLayout(requireContext());
+        courtLayout.setOrientation(LinearLayout.VERTICAL);
+        courtLayout.setPadding(16, 16, 16, 16);
+
+        LinearLayout headerLayout = new LinearLayout(requireContext());
+        headerLayout.setOrientation(LinearLayout.HORIZONTAL);
+
+        TextView courtName = new TextView(requireContext());
+        courtName.setText(court.getName());
+        courtName.setTextSize(20);
+        courtName.setTypeface(null, android.graphics.Typeface.BOLD);
+        courtName.setTextColor(Color.BLACK);
+        courtName.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        headerLayout.addView(courtName);
+
+        int trainingCount = 0;
+        for (Training training : trainings) {
+            if (training.getCourtId().equals(court.getCourtId())) {
+                // Count only trainings in the current week
+                long trainingDate = training.getDate();
+                if (trainingDate >= weekStartMillis && trainingDate < weekEndMillis) {
+                    // Also apply day and team filters if set
+                    if (!selectedDays.isEmpty() && !selectedDays.contains(training.getDayOfWeek())) {
+                        continue;
+                    }
+                    
+                    // For players: Only count trainings from their own teams
+                    if (isPlayer) {
+                        if (currentUser.getTeamIds() == null || !currentUser.getTeamIds().contains(training.getTeamId())) {
+                            continue;
+                        }
+                        // If teams are filtered, also apply the filter
+                        if (!selectedTeamIds.isEmpty() && !selectedTeamIds.contains(training.getTeamId())) {
+                            continue;
+                        }
+                    } else {
+                        // For non-players: Apply team filter if set
+                        if (!selectedTeamIds.isEmpty() && !selectedTeamIds.contains(training.getTeamId())) {
+                            continue;
+                        }
+                    }
+                    
+                    trainingCount++;
+                }
+            }
+        }
+
+        TextView infoText = new TextView(requireContext());
+        infoText.setText("אימונים: " + trainingCount);
+        infoText.setTextSize(14);
+        infoText.setTextColor(Color.GRAY);
+        infoText.setPadding(8, 0, 0, 0);
+        headerLayout.addView(infoText);
+
+        headerLayout.setPadding(0, 0, 0, 16);
+        courtLayout.addView(headerLayout);
+
+        View timelineView = createTimelineView(court, weekStartMillis, weekEndMillis);
+        courtLayout.addView(timelineView);
+
+        View divider = new View(requireContext());
+        LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 2);
+        dividerParams.setMargins(0, 24, 0, 24);
+        divider.setLayoutParams(dividerParams);
+        divider.setBackgroundColor(Color.LTGRAY);
+        courtLayout.addView(divider);
+
+        return courtLayout;
+    }
+
+    private View createTimelineView(Court court, long weekStartMillis, long weekEndMillis) {
+        LinearLayout timeline = new LinearLayout(requireContext());
+        timeline.setOrientation(LinearLayout.VERTICAL);
+
+        List<Training> courtTrainings = new ArrayList<>();
+        for (Training training : trainings) {
+            if (!training.getCourtId().equals(court.getCourtId())) {
+                continue;
+            }
+
+            // Apply week filter
+            if (showOnlyThisWeek) {
+                long trainingDate = training.getDate();
+                if (trainingDate < weekStartMillis || trainingDate >= weekEndMillis) {
+                    continue;
+                }
+            }
+
+            // Apply day filter (multi-select)
+            if (!selectedDays.isEmpty()) {
+                if (!selectedDays.contains(training.getDayOfWeek())) {
+                    continue;
+                }
+            }
+
+            // For players: Only show trainings from their own teams
+            // Regardless of what team filter they select, they can only see their own teams
+            if (isPlayer) {
+                if (currentUser.getTeamIds() == null || !currentUser.getTeamIds().contains(training.getTeamId())) {
+                    android.util.Log.d("AllCourtsView", "FILTERED OUT - Player not in team: " + training.getTeamId());
+                    continue;
+                }
+                // If teams are filtered, also apply the filter
+                if (!selectedTeamIds.isEmpty()) {
+                    if (!selectedTeamIds.contains(training.getTeamId())) {
+                        android.util.Log.d("AllCourtsView", "FILTERED OUT by team chip - Training teamId: " + training.getTeamId() + " not in selected: " + selectedTeamIds);
+                        continue;
+                    }
+                }
+            } else {
+                // For non-players: Apply team filter based on chip selection
+                if (!selectedTeamIds.isEmpty()) {
+                    if (!selectedTeamIds.contains(training.getTeamId())) {
+                        android.util.Log.d("AllCourtsView", "FILTERED OUT by chip - Training teamId: " + training.getTeamId() + " not in selected: " + selectedTeamIds);
+                        continue;
+                    }
+                }
+            }
+
+            courtTrainings.add(training);
+        }
+
+        // Sort trainings by date and time
+        Collections.sort(courtTrainings, new Comparator<Training>() {
+            @Override
+            public int compare(Training t1, Training t2) {
+                // First compare by date
+                int dateCompare = Long.compare(t1.getDate(), t2.getDate());
+                if (dateCompare != 0) {
+                    return dateCompare;
+                }
+                // If same date, compare by start time
+                return t1.getStartTime().compareTo(t2.getStartTime());
+            }
+        });
+
+        if (courtTrainings.isEmpty()) {
+            TextView emptyText = new TextView(requireContext());
+            emptyText.setText("אין אימונים");
+            emptyText.setTextColor(Color.GRAY);
+            emptyText.setPadding(16, 16, 16, 16);
+            timeline.addView(emptyText);
+        } else {
+            String lastDate = "";
+            for (Training training : courtTrainings) {
+                // Get the day of week for this training
+                Calendar cal = Calendar.getInstance();
+                cal.setTimeInMillis(training.getDate());
+                String dayOfWeekName = training.getDayOfWeek(); // Sunday, Monday, etc.
+                String dateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH).format(cal.getTime());
+                String currentDateWithDay = dayOfWeekName + " " + dateStr;
+                
+                // Add day separator if date changed
+                if (!lastDate.equals(currentDateWithDay)) {
+                    // Add day header
+                    View dayHeader = createDayHeaderView(dayOfWeekName);
+                    timeline.addView(dayHeader);
+                    lastDate = currentDateWithDay;
+                }
+                
+                View trainingBlock = createTrainingBlock(training);
+                timeline.addView(trainingBlock);
+            }
+        }
+
+        return timeline;
+    }
+    
+    private View createDayHeaderView(String dayOfWeekName) {
+        TextView dayHeader = new TextView(requireContext());
+        
+        // Get Hebrew day name
+        String[] hebrewDays = {"ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"};
+        String[] englishDays = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+        
+        int dayIndex = 0;
+        for (int i = 0; i < englishDays.length; i++) {
+            if (englishDays[i].equals(dayOfWeekName)) {
+                dayIndex = i;
+                break;
+            }
+        }
+        
+        dayHeader.setText(hebrewDays[dayIndex]);
+        dayHeader.setTextSize(16);
+        dayHeader.setTypeface(null, android.graphics.Typeface.BOLD);
+        dayHeader.setTextColor(Color.parseColor("#1976D2"));
+        dayHeader.setPadding(16, 16, 16, 8);
+        
+        // Right-to-left layout for Hebrew
+        dayHeader.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        dayHeader.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
+        
+        // Add top divider
+        LinearLayout headerLayout = new LinearLayout(requireContext());
+        headerLayout.setOrientation(LinearLayout.VERTICAL);
+        
+        View topDivider = new View(requireContext());
+        LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 1);
+        dividerParams.setMargins(0, 8, 0, 0);
+        topDivider.setLayoutParams(dividerParams);
+        topDivider.setBackgroundColor(Color.parseColor("#D0D0D0"));
+        headerLayout.addView(topDivider);
+        
+        headerLayout.addView(dayHeader);
+        
+        return headerLayout;
+    }
+
+    private View createTrainingBlock(Training training) {
+        LinearLayout blockLayout = new LinearLayout(requireContext());
+        blockLayout.setOrientation(LinearLayout.VERTICAL);
+        blockLayout.setPadding(12, 12, 12, 12);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        params.setMargins(0, 0, 0, 8);
+        blockLayout.setLayoutParams(params);
+
+        // Day and date
+        TextView dayDateView = new TextView(requireContext());
+        SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE, dd/MM", new Locale("he", "IL"));
+        String dayDateText = dayFormat.format(training.getDate());
+        dayDateView.setText(dayDateText);
+        dayDateView.setTextColor(Color.WHITE);
+        dayDateView.setTextSize(11);
+        dayDateView.setTypeface(null, android.graphics.Typeface.ITALIC);
+        blockLayout.addView(dayDateView);
+
+        // Team name
+        TextView teamNameView = new TextView(requireContext());
+        teamNameView.setText(training.getTeamName());
+        teamNameView.setTextColor(Color.WHITE);
+        teamNameView.setTextSize(15);
+        teamNameView.setTypeface(null, android.graphics.Typeface.BOLD);
+        blockLayout.addView(teamNameView);
+
+        // Time
+        TextView timeView = new TextView(requireContext());
+        timeView.setText(training.getStartTime() + " - " + training.getEndTime());
+        timeView.setTextColor(Color.WHITE);
+        timeView.setTextSize(13);
+        blockLayout.addView(timeView);
+
+        try {
+            blockLayout.setBackgroundColor(Color.parseColor(training.getTeamColor()));
+        } catch (Exception e) {
+            blockLayout.setBackgroundColor(Color.parseColor("#3DDC84"));
+        }
+
+        return blockLayout;
+    }
+}

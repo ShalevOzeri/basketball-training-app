@@ -6,4 +6,9 @@
         android:title="הוסף שחקן"
         android:icon="@android:drawable/ic_input_add"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_export_players"
+        android:title="הדפס דוח"
+        android:icon="@android:drawable/ic_menu_save"
+        app:showAsAction="ifRoom" />
 </menu>

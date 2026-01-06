@@ -4,26 +4,26 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
+import androidx.navigation.ui.AppBarConfiguration;
+import androidx.navigation.ui.NavigationUI;
 
 import com.example.testapp.models.User;
 import com.example.testapp.repository.UserRepository;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 
 public class MainActivity extends AppCompatActivity {
 
-    private CardView courtsCard, teamsCard, scheduleCard, allCourtsCard, manageUsersCard, playerDetailsCard;
     private MaterialToolbar toolbar;
+    private NavController navController;
+    private AppBarConfiguration appBarConfiguration;
     private UserRepository userRepository;
     private User currentUser;
     private DatabaseReference settingsRef;
@@ -35,139 +35,46 @@ public class MainActivity extends AppCompatActivity {
 
         initializeViews();
         userRepository = new UserRepository();
-        
-        setupToolbar();
-        loadCurrentUserAndCheckPermissions();
-        setupCardClicks();
+        settingsRef = FirebaseDatabase.getInstance().getReference("settings");
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // Setup navigation after view is fully created
+        setupNavigation();
     }
 
     private void initializeViews() {
         toolbar = findViewById(R.id.toolbar);
-        courtsCard = findViewById(R.id.courtsCard);
-        teamsCard = findViewById(R.id.teamsCard);
-        scheduleCard = findViewById(R.id.scheduleCard);
-        allCourtsCard = findViewById(R.id.allCourtsCard);
-        manageUsersCard = findViewById(R.id.manageUsersCard);
-        playerDetailsCard = findViewById(R.id.playerDetailsCard);
-        settingsRef = FirebaseDatabase.getInstance().getReference("settings");
-        
-        // Hide cards by default - will show based on role
-        if (manageUsersCard != null) {
-            manageUsersCard.setVisibility(View.GONE);
-        }
-        if (courtsCard != null) {
-            courtsCard.setVisibility(View.GONE);
-        }
-        if (teamsCard != null) {
-            teamsCard.setVisibility(View.GONE);
-        }
-        if (playerDetailsCard != null) {
-            playerDetailsCard.setVisibility(View.GONE);
-        }
-    }
-
-    private void setupToolbar() {
         setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("TIMEOUT");
+    }
+
+    private void setupNavigation() {
+        try {
+            // קבלת NavController מה-NavHostFragment
+            navController = Navigation.findNavController(this, R.id.nav_host_fragment);
+            
+            // הגדרת AppBarConfiguration - homeFragment הוא המסך הראשי
+            appBarConfiguration = new AppBarConfiguration.Builder(R.id.homeFragment).build();
+            
+            // חיבור הטולבר לניווט
+            NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
+        } catch (Exception e) {
+            Toast.makeText(this, "שגיאה בטעינת ניווט: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            e.printStackTrace();
+            finish();
         }
     }
 
-    private void setupCardClicks() {
-        courtsCard.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, CourtsActivity.class);
-            startActivity(intent);
-        });
-
-        teamsCard.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, TeamsActivity.class);
-            startActivity(intent);
-        });
-
-        scheduleCard.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, ScheduleActivity.class);
-            startActivity(intent);
-        });
-
-        allCourtsCard.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, AllCourtsViewActivity.class);
-            startActivity(intent);
-        });
-        
-        if (manageUsersCard != null) {
-            manageUsersCard.setOnClickListener(v -> {
-                Intent intent = new Intent(MainActivity.this, ManageUsersActivity.class);
-                startActivity(intent);
-            });
+    @Override
+    public boolean onSupportNavigateUp() {
+        // טיפול בלחיצה על חץ החזרה בטולבר
+        if (navController != null) {
+            return NavigationUI.navigateUp(navController, appBarConfiguration)
+                    || super.onSupportNavigateUp();
         }
-        
-        if (playerDetailsCard != null) {
-            playerDetailsCard.setOnClickListener(v -> {
-                Intent intent = new Intent(MainActivity.this, PlayerDetailsActivity.class);
-                startActivity(intent);
-            });
-        }
-    }
-    
-    private void loadCurrentUserAndCheckPermissions() {
-        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        DatabaseReference usersRef = FirebaseDatabase.getInstance().getReference("users");
-        
-        usersRef.child(userId).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot snapshot) {
-                currentUser = snapshot.getValue(User.class);
-                if (currentUser != null) {
-                    // Update toolbar with user role
-                    updateToolbarWithRole(currentUser);
-                    
-                    // Show features based on role
-                    if (currentUser.isAdmin()) {
-                        // Admin sees everything
-                        if (manageUsersCard != null) manageUsersCard.setVisibility(View.VISIBLE);
-                        if (courtsCard != null) courtsCard.setVisibility(View.VISIBLE);
-                        if (teamsCard != null) teamsCard.setVisibility(View.VISIBLE);
-                    } else if (currentUser.isCoordinator()) {
-                        // Coordinator sees courts and teams management
-                        if (courtsCard != null) courtsCard.setVisibility(View.VISIBLE);
-                        if (teamsCard != null) teamsCard.setVisibility(View.VISIBLE);
-                    } else if (currentUser.isCoach()) {
-                        // Coach sees their teams
-                        if (teamsCard != null) teamsCard.setVisibility(View.VISIBLE);
-                    } else if (currentUser.isPlayer()) {
-                        // Player sees player details card
-                        if (playerDetailsCard != null) playerDetailsCard.setVisibility(View.VISIBLE);
-                    }
-                }
-            }
-
-            @Override
-            public void onCancelled(DatabaseError error) {
-                Toast.makeText(MainActivity.this, "שגיאה בטעינת נתוני משתמש", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-    
-    private void updateToolbarWithRole(User user) {
-        String roleText = "";
-        switch (user.getRole()) {
-            case "ADMIN":
-                roleText = "מנהל";
-                break;
-            case "COORDINATOR":
-                roleText = "רכז";
-                break;
-            case "COACH":
-                roleText = "מאמן";
-                break;
-            case "PLAYER":
-                roleText = "שחקן";
-                break;
-        }
-        
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("TIMEOUT • " + user.getName() + " • " + roleText);
-        }
+        return super.onSupportNavigateUp();
     }
 
 

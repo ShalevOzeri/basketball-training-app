@@ -6,7 +6,6 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
@@ -30,7 +29,7 @@ public class PlayerDetailsActivity extends AppCompatActivity {
     private static final String[] SHIRT_SIZES = {"8", "10", "12", "14", "16", "18", "S", "M", "L", "XL", "XXL", "XXXL"};
 
     private EditText firstNameEditText, lastNameEditText, gradeEditText, schoolEditText;
-    private EditText playerPhoneEditText, parentPhoneEditText, idNumberEditText, birthDateEditText;
+    private EditText playerPhoneEditText, parentPhoneEditText, idNumberEditText, birthDateEditText, jerseyNumberEditText;
     private Spinner shirtSizeSpinner;
     private Button saveButton;
     private ProgressBar progressBar;
@@ -38,6 +37,7 @@ public class PlayerDetailsActivity extends AppCompatActivity {
     private DatabaseReference usersRef;
     private String userId;
     private String playerId;
+    private String teamId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,12 +57,12 @@ public class PlayerDetailsActivity extends AppCompatActivity {
         playersRef = FirebaseDatabase.getInstance().getReference("players");
         usersRef = FirebaseDatabase.getInstance().getReference("users");
         
-        // Get userId from intent, or use current logged-in user
         userId = getIntent().getStringExtra("userId");
-        if (userId == null) {
+        if (userId == null && FirebaseAuth.getInstance().getCurrentUser() != null) {
             userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         }
         playerId = getIntent().getStringExtra("playerId");
+        teamId = getIntent().getStringExtra("teamId");
         
         setupDatePicker();
         loadPlayerData();
@@ -79,6 +79,7 @@ public class PlayerDetailsActivity extends AppCompatActivity {
 
             DatePickerDialog datePickerDialog = new DatePickerDialog(
                 PlayerDetailsActivity.this,
+                android.R.style.Theme_Material_Light_Dialog_Alert,
                 (view, selectedYear, selectedMonth, selectedDay) -> {
                     String date = String.format("%02d/%02d/%04d", selectedDay, selectedMonth + 1, selectedYear);
                     birthDateEditText.setText(date);
@@ -98,6 +99,7 @@ public class PlayerDetailsActivity extends AppCompatActivity {
         parentPhoneEditText = findViewById(R.id.parentPhoneEditText);
         idNumberEditText = findViewById(R.id.idNumberEditText);
         birthDateEditText = findViewById(R.id.birthDateEditText);
+        jerseyNumberEditText = findViewById(R.id.jerseyNumberEditText);
         shirtSizeSpinner = findViewById(R.id.shirtSizeSpinner);
         saveButton = findViewById(R.id.saveButton);
         progressBar = findViewById(R.id.progressBar);
@@ -112,7 +114,6 @@ public class PlayerDetailsActivity extends AppCompatActivity {
     private void loadPlayerData() {
         progressBar.setVisibility(View.VISIBLE);
         
-        // First check if we can load User data
         if (userId != null && !userId.isEmpty()) {
             usersRef.child(userId).addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
@@ -120,7 +121,6 @@ public class PlayerDetailsActivity extends AppCompatActivity {
                     if (snapshot.exists()) {
                         com.example.testapp.models.User user = snapshot.getValue(com.example.testapp.models.User.class);
                         if (user != null) {
-                            // Pre-fill name and phone from User data
                             String fullName = user.getName() != null ? user.getName() : "";
                             if (!fullName.isEmpty()) {
                                 String[] nameParts = fullName.split(" ", 2);
@@ -136,10 +136,8 @@ public class PlayerDetailsActivity extends AppCompatActivity {
                                 playerPhoneEditText.setText(user.getPhone());
                             }
                             
-                            // Get playerId from User record
                             String playerIdFromUser = user.getPlayerId();
                             
-                            // Load player data using playerId from User
                             if (playerIdFromUser != null && !playerIdFromUser.isEmpty()) {
                                 loadPlayerByPlayerId(playerIdFromUser);
                             } else {
@@ -153,7 +151,6 @@ public class PlayerDetailsActivity extends AppCompatActivity {
 
                 @Override
                 public void onCancelled(DatabaseError error) {
-                    // Continue to load player data even if user load fails
                     loadPlayerSpecificData();
                 }
             });
@@ -171,6 +168,8 @@ public class PlayerDetailsActivity extends AppCompatActivity {
                 if (snapshot.exists()) {
                     Player player = snapshot.getValue(Player.class);
                     if (player != null) {
+                        // עדכן את playerId מ-Firebase key
+                        playerId = playerIdFromUser;
                         populatePlayerFields(player);
                     }
                 }
@@ -189,7 +188,6 @@ public class PlayerDetailsActivity extends AppCompatActivity {
         if (playerId != null && !playerId.isEmpty()) {
             loadPlayerByPlayerId(playerId);
         } else {
-            // Fallback: try by userId (requires players index on userId in rules)
             loadPlayerByUserId();
         }
     }
@@ -209,6 +207,8 @@ public class PlayerDetailsActivity extends AppCompatActivity {
                         for (DataSnapshot child : snapshot.getChildren()) {
                             Player player = child.getValue(Player.class);
                             if (player != null) {
+                                // עדכן את playerId מ-Firebase key
+                                playerId = child.getKey();
                                 populatePlayerFields(player);
                                 break;
                             }
@@ -224,7 +224,6 @@ public class PlayerDetailsActivity extends AppCompatActivity {
     }
     
     private void populatePlayerFields(Player player) {
-        // Names: fill if empty
         if (TextUtils.isEmpty(firstNameEditText.getText().toString().trim()) && player.getFirstName() != null) {
             firstNameEditText.setText(player.getFirstName());
         }
@@ -235,7 +234,6 @@ public class PlayerDetailsActivity extends AppCompatActivity {
         gradeEditText.setText(player.getGrade() != null ? player.getGrade() : "");
         schoolEditText.setText(player.getSchool() != null ? player.getSchool() : "");
         
-        // If playerPhone is set in Player record and playerPhoneEditText is empty, use it
         if ((player.getPlayerPhone() != null && !player.getPlayerPhone().isEmpty()) && 
             TextUtils.isEmpty(playerPhoneEditText.getText().toString().trim())) {
             playerPhoneEditText.setText(player.getPlayerPhone());
@@ -244,8 +242,8 @@ public class PlayerDetailsActivity extends AppCompatActivity {
         parentPhoneEditText.setText(player.getParentPhone() != null ? player.getParentPhone() : "");
         idNumberEditText.setText(player.getIdNumber() != null ? player.getIdNumber() : "");
         birthDateEditText.setText(player.getBirthDate() != null ? player.getBirthDate() : "");
+        jerseyNumberEditText.setText(player.getJerseyNumber() != null ? player.getJerseyNumber() : "");
         
-        // Set shirt size
         for (int i = 0; i < SHIRT_SIZES.length; i++) {
             if (SHIRT_SIZES[i].equals(player.getShirtSize())) {
                 shirtSizeSpinner.setSelection(i);
@@ -263,6 +261,7 @@ public class PlayerDetailsActivity extends AppCompatActivity {
         String parentPhone = parentPhoneEditText.getText().toString().trim();
         String idNumber = idNumberEditText.getText().toString().trim();
         String birthDate = birthDateEditText.getText().toString().trim();
+        String jerseyNumber = jerseyNumberEditText.getText().toString().trim();
         String shirtSize = shirtSizeSpinner.getSelectedItem().toString();
 
         if (TextUtils.isEmpty(firstName)) {
@@ -278,7 +277,41 @@ public class PlayerDetailsActivity extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
         saveButton.setEnabled(false);
 
-        // Update User record with name and phone
+        // בדוק זמינות מספר גופיה
+        if (!TextUtils.isEmpty(jerseyNumber)) {
+            if (teamId != null && !teamId.isEmpty()) {
+                // בדוק בקבוצה הספציפית
+                checkJerseyNumberAvailability(teamId, jerseyNumber, userId, isAvailable -> {
+                    if (!isAvailable) {
+                        progressBar.setVisibility(View.GONE);
+                        saveButton.setEnabled(true);
+                        Toast.makeText(PlayerDetailsActivity.this, "מספר גופיה זה כבר בשימוש בקבוצה", Toast.LENGTH_SHORT).show();
+                        jerseyNumberEditText.setText("");
+                        return;
+                    }
+                    proceedWithSave(firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, jerseyNumber, shirtSize);
+                });
+            } else {
+                // בדוק בכל הקבוצות של השחקן
+                checkJerseyNumberAvailabilityInAllTeams(jerseyNumber, userId, isAvailable -> {
+                    if (!isAvailable) {
+                        progressBar.setVisibility(View.GONE);
+                        saveButton.setEnabled(true);
+                        Toast.makeText(PlayerDetailsActivity.this, "מספר גופיה זה כבר בשימוש בקבוצה אחרת", Toast.LENGTH_SHORT).show();
+                        jerseyNumberEditText.setText("");
+                        return;
+                    }
+                    proceedWithSave(firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, jerseyNumber, shirtSize);
+                });
+            }
+        } else {
+            proceedWithSave(firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, jerseyNumber, shirtSize);
+        }
+    }
+    
+    private void proceedWithSave(String firstName, String lastName, String grade, String school, 
+                                 String playerPhone, String parentPhone, String idNumber, 
+                                 String birthDate, String jerseyNumber, String shirtSize) {
         usersRef.child(userId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
@@ -291,8 +324,7 @@ public class PlayerDetailsActivity extends AppCompatActivity {
                     }
                 }
                 
-                // Then update all player records
-                updateAllPlayerRecords(firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, shirtSize);
+                updateAllPlayerRecords(firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, jerseyNumber, shirtSize);
             }
 
             @Override
@@ -306,18 +338,15 @@ public class PlayerDetailsActivity extends AppCompatActivity {
     
     private void updateAllPlayerRecords(String firstName, String lastName, String grade, String school, 
                                         String playerPhone, String parentPhone, String idNumber, 
-                                        String birthDate, String shirtSize) {
-        // Update ALL player records for this user across all teams
+                                        String birthDate, String jerseyNumber, String shirtSize) {
         playersRef.orderByChild("userId").equalTo(userId)
             .addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot snapshot) {
                     if (snapshot.exists()) {
-                        // Update each player record in each team
                         for (DataSnapshot playerSnapshot : snapshot.getChildren()) {
                             Player player = playerSnapshot.getValue(Player.class);
                             if (player != null) {
-                                // Update all personal details
                                 player.setFirstName(firstName);
                                 player.setLastName(lastName);
                                 player.setGrade(grade);
@@ -326,10 +355,10 @@ public class PlayerDetailsActivity extends AppCompatActivity {
                                 player.setParentPhone(parentPhone);
                                 player.setIdNumber(idNumber);
                                 player.setBirthDate(birthDate);
+                                player.setJerseyNumber(jerseyNumber != null ? jerseyNumber : "");
                                 player.setShirtSize(shirtSize);
                                 player.setUpdatedAt(System.currentTimeMillis());
                                 
-                                // Save updated player (preserves teamId)
                                 playersRef.child(playerSnapshot.getKey()).setValue(player);
                             }
                         }
@@ -339,7 +368,6 @@ public class PlayerDetailsActivity extends AppCompatActivity {
                         Toast.makeText(PlayerDetailsActivity.this, "הפרטים עודכנו בהצלחה בכל הקבוצות", Toast.LENGTH_SHORT).show();
                         finish();
                     } else {
-                        // No player record yet: create one primary record and link to user
                         String newPlayerId = playersRef.push().getKey();
                         if (newPlayerId == null) {
                             progressBar.setVisibility(View.GONE);
@@ -359,13 +387,13 @@ public class PlayerDetailsActivity extends AppCompatActivity {
                         player.setParentPhone(parentPhone);
                         player.setIdNumber(idNumber);
                         player.setBirthDate(birthDate);
+                        player.setJerseyNumber(jerseyNumber != null ? jerseyNumber : "");
                         player.setShirtSize(shirtSize);
                         player.setCreatedAt(System.currentTimeMillis());
                         player.setUpdatedAt(System.currentTimeMillis());
 
                         playersRef.child(newPlayerId).setValue(player)
                             .addOnSuccessListener(aVoid -> {
-                                // Link user to this playerId
                                 usersRef.child(userId).child("playerId").setValue(newPlayerId);
                                 progressBar.setVisibility(View.GONE);
                                 saveButton.setEnabled(true);
@@ -387,5 +415,72 @@ public class PlayerDetailsActivity extends AppCompatActivity {
                     Toast.makeText(PlayerDetailsActivity.this, "שגיאה בעדכון: " + error.getMessage(), Toast.LENGTH_SHORT).show();
                 }
             });
+    }
+    
+    private void checkJerseyNumberAvailability(String teamId, String jerseyNumber, String currentUserId,
+                                              OnJerseyCheckListener listener) {
+        if (teamId == null || teamId.isEmpty()) {
+            listener.onResult(true);
+            return;
+        }
+        
+        playersRef.orderByChild("teamId").equalTo(teamId)
+            .addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot snapshot) {
+                    boolean isAvailable = true;
+                    for (DataSnapshot playerSnapshot : snapshot.getChildren()) {
+                        Player player = playerSnapshot.getValue(Player.class);
+                        String playerKey = playerSnapshot.getKey();
+                        
+                        // בדוק אם מספר הגופיה קיים ושונה מהשחקן הנוכחי
+                        if (player != null &&
+                            jerseyNumber.equals(player.getJerseyNumber()) &&
+                            !playerKey.equals(playerId)) {
+                            isAvailable = false;
+                            break;
+                        }
+                    }
+                    listener.onResult(isAvailable);
+                }
+
+                @Override
+                public void onCancelled(DatabaseError error) {
+                    listener.onResult(true);
+                }
+            });
+    }
+    
+    private void checkJerseyNumberAvailabilityInAllTeams(String jerseyNumber, String currentUserId,
+                                                        OnJerseyCheckListener listener) {
+        // בדוק בכל השחקנים אם המספר תפוס אצל שחקן אחר
+        playersRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                boolean isAvailable = true;
+                for (DataSnapshot playerSnapshot : snapshot.getChildren()) {
+                    Player player = playerSnapshot.getValue(Player.class);
+                    String playerKey = playerSnapshot.getKey();
+                    
+                    // בדוק אם מספר הגופיה קיים ושונה מהשחקן הנוכחי
+                    if (player != null &&
+                        jerseyNumber.equals(player.getJerseyNumber()) &&
+                        !playerKey.equals(playerId)) {
+                        isAvailable = false;
+                        break;
+                    }
+                }
+                listener.onResult(isAvailable);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                listener.onResult(true);
+            }
+        });
+    }
+    
+    private interface OnJerseyCheckListener {
+        void onResult(boolean isAvailable);
     }
 }

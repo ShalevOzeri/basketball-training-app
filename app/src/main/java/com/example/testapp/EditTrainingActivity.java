@@ -5,15 +5,15 @@ import android.app.TimePickerDialog;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.MenuItem;
-import android.widget.ArrayAdapter;
+import android.view.View;
 import android.widget.DatePicker;
 import android.widget.EditText;
-import android.widget.Spinner;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.testapp.models.DaySchedule;
@@ -24,6 +24,8 @@ import com.example.testapp.repository.TrainingRepository;
 import com.example.testapp.viewmodel.TrainingViewModel;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
@@ -32,14 +34,18 @@ import com.google.firebase.database.ValueEventListener;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class EditTrainingActivity extends AppCompatActivity {
 
     private MaterialToolbar toolbar;
-    private Spinner spinnerTeam;
-    private Spinner spinnerCourt;
+    private SearchView searchViewTeams;
+    private SearchView searchViewCourts;
+    private ChipGroup chipGroupTeams;
+    private ChipGroup chipGroupCourts;
     private EditText editDate;
     private EditText editStartTime;
     private EditText editEndTime;
@@ -49,10 +55,12 @@ public class EditTrainingActivity extends AppCompatActivity {
     private TrainingViewModel viewModel;
     private Training originalTraining;
     private final List<Team> teams = new ArrayList<>();
-    private ArrayAdapter<String> teamAdapter;
+    private final Map<String, Team> teamMap = new HashMap<>();
     private final List<Court> courts = new ArrayList<>();
-    private ArrayAdapter<String> courtAdapter;
+    private final Map<String, Court> courtMap = new HashMap<>();
     private final Calendar selectedDate = Calendar.getInstance();
+    private Team selectedTeam;
+    private Court selectedCourt;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,8 +79,6 @@ public class EditTrainingActivity extends AppCompatActivity {
         initViews();
         setupToolbar();
         setupViewModel();
-        setupTeamSpinner();
-        setupCourtSpinner();
         setupPickers();
         setupSave();
         loadTeams();
@@ -82,8 +88,10 @@ public class EditTrainingActivity extends AppCompatActivity {
 
     private void initViews() {
         toolbar = findViewById(R.id.toolbar);
-        spinnerTeam = findViewById(R.id.spinnerTeam);
-        spinnerCourt = findViewById(R.id.spinnerCourt);
+        searchViewTeams = findViewById(R.id.searchViewTeams);
+        searchViewCourts = findViewById(R.id.searchViewCourts);
+        chipGroupTeams = findViewById(R.id.chipGroupTeams);
+        chipGroupCourts = findViewById(R.id.chipGroupCourts);
         editDate = findViewById(R.id.editDate);
         editStartTime = findViewById(R.id.editStartTime);
         editEndTime = findViewById(R.id.editEndTime);
@@ -106,26 +114,43 @@ public class EditTrainingActivity extends AppCompatActivity {
                 Toast.makeText(this, err, Toast.LENGTH_SHORT).show();
             }
         });
-    }
 
-    private void setupTeamSpinner() {
-        teamAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new ArrayList<>());
-        teamAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerTeam.setAdapter(teamAdapter);
-    }
+        // Setup search listeners for teams
+        searchViewTeams.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
 
-    private void setupCourtSpinner() {
-        courtAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new ArrayList<>());
-        courtAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerCourt.setAdapter(courtAdapter);
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                filterTeamChips(newText);
+                return true;
+            }
+        });
+
+        // Setup search listeners for courts
+        searchViewCourts.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                filterCourtChips(newText);
+                return true;
+            }
+        });
     }
 
     private void setupPickers() {
-        SimpleDateFormat dateFmt = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        Locale hebrewLocale = new Locale("he", "IL");
+        SimpleDateFormat dateFmt = new SimpleDateFormat("dd/MM/yyyy", hebrewLocale);
         editDate.setText(dateFmt.format(selectedDate.getTime()));
 
         editDate.setOnClickListener(v -> {
-            DatePickerDialog dialog = new DatePickerDialog(this, (DatePicker view, int year, int month, int dayOfMonth) -> {
+            DatePickerDialog dialog = new DatePickerDialog(this, android.R.style.Theme_Material_Light_Dialog_Alert, (DatePicker view, int year, int month, int dayOfMonth) -> {
                 selectedDate.set(Calendar.YEAR, year);
                 selectedDate.set(Calendar.MONTH, month);
                 selectedDate.set(Calendar.DAY_OF_MONTH, dayOfMonth);
@@ -140,7 +165,7 @@ public class EditTrainingActivity extends AppCompatActivity {
 
     private void showTimePicker(EditText target) {
         Calendar now = Calendar.getInstance();
-        TimePickerDialog dialog = new TimePickerDialog(this, (TimePicker view, int hourOfDay, int minute) -> {
+        TimePickerDialog dialog = new TimePickerDialog(this, TimePickerDialog.THEME_HOLO_LIGHT, (TimePicker view, int hourOfDay, int minute) -> {
             target.setText(String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute));
         }, now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), true);
         dialog.show();
@@ -150,6 +175,92 @@ public class EditTrainingActivity extends AppCompatActivity {
         editStartTime.setText(originalTraining.getStartTime());
         editEndTime.setText(originalTraining.getEndTime());
         editNotes.setText(originalTraining.getNotes());
+        
+        // Set selected team and court from original training
+        for (Team team : teams) {
+            if (team.getTeamId().equals(originalTraining.getTeamId())) {
+                selectedTeam = team;
+                break;
+            }
+        }
+        
+        for (Court court : courts) {
+            if (court.getCourtId().equals(originalTraining.getCourtId())) {
+                selectedCourt = court;
+                break;
+            }
+        }
+        
+        setupTeamChipGroup();
+        setupCourtChipGroup();
+    }
+
+    private void setupTeamChipGroup() {
+        chipGroupTeams.removeAllViews();
+        for (Team team : teams) {
+            Chip chip = new Chip(this);
+            chip.setText(team.getName());
+            chip.setChipBackgroundColorResource(android.R.color.white);
+            chip.setCheckable(true);
+            
+            // Check if this is the selected team
+            if (selectedTeam != null && team.getTeamId().equals(selectedTeam.getTeamId())) {
+                chip.setChecked(true);
+            }
+            
+            chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) {
+                    selectedTeam = team;
+                }
+            });
+            chipGroupTeams.addView(chip);
+        }
+    }
+
+    private void setupCourtChipGroup() {
+        chipGroupCourts.removeAllViews();
+        for (Court court : courts) {
+            Chip chip = new Chip(this);
+            chip.setText(court.getName());
+            chip.setChipBackgroundColorResource(android.R.color.white);
+            chip.setCheckable(true);
+            
+            // Check if this is the selected court
+            if (selectedCourt != null && court.getCourtId().equals(selectedCourt.getCourtId())) {
+                chip.setChecked(true);
+            }
+            
+            chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) {
+                    selectedCourt = court;
+                }
+            });
+            chipGroupCourts.addView(chip);
+        }
+    }
+
+    private void filterTeamChips(String query) {
+        String lowerQuery = query.toLowerCase();
+        for (int i = 0; i < chipGroupTeams.getChildCount(); i++) {
+            View child = chipGroupTeams.getChildAt(i);
+            if (child instanceof Chip) {
+                Chip chip = (Chip) child;
+                String teamName = chip.getText().toString();
+                chip.setVisibility(teamName.toLowerCase().contains(lowerQuery) ? View.VISIBLE : View.GONE);
+            }
+        }
+    }
+
+    private void filterCourtChips(String query) {
+        String lowerQuery = query.toLowerCase();
+        for (int i = 0; i < chipGroupCourts.getChildCount(); i++) {
+            View child = chipGroupCourts.getChildAt(i);
+            if (child instanceof Chip) {
+                Chip chip = (Chip) child;
+                String courtName = chip.getText().toString();
+                chip.setVisibility(courtName.toLowerCase().contains(lowerQuery) ? View.VISIBLE : View.GONE);
+            }
+        }
     }
 
     private void setupSave() {
@@ -157,20 +268,18 @@ public class EditTrainingActivity extends AppCompatActivity {
     }
 
     private void saveTraining() {
-        int teamPos = spinnerTeam.getSelectedItemPosition();
-        if (teamPos < 0 || teams.isEmpty()) {
+        if (selectedTeam == null) {
             Toast.makeText(this, "בחר קבוצה", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        int courtPos = spinnerCourt.getSelectedItemPosition();
-        if (courtPos < 0 || courts.isEmpty()) {
+        if (selectedCourt == null) {
             Toast.makeText(this, "בחר מגרש", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        Team team = teams.get(teamPos);
-        Court court = courts.get(courtPos);
+        Team team = selectedTeam;
+        Court court = selectedCourt;
         String start = editStartTime.getText().toString().trim();
         String end = editEndTime.getText().toString().trim();
         String notes = editNotes.getText().toString().trim();
@@ -190,6 +299,32 @@ public class EditTrainingActivity extends AppCompatActivity {
         if (!isWithinCourtHours(court, startMinutes, endMinutes)) {
             return;
         }
+        
+        // Check if training time is in the past (only for today)
+        Calendar today = Calendar.getInstance();
+        today.set(Calendar.HOUR_OF_DAY, 0);
+        today.set(Calendar.MINUTE, 0);
+        today.set(Calendar.SECOND, 0);
+        today.set(Calendar.MILLISECOND, 0);
+        
+        Calendar selectedDay = (Calendar) selectedDate.clone();
+        selectedDay.set(Calendar.HOUR_OF_DAY, 0);
+        selectedDay.set(Calendar.MINUTE, 0);
+        selectedDay.set(Calendar.SECOND, 0);
+        selectedDay.set(Calendar.MILLISECOND, 0);
+        
+        // If today, check if the time has already passed
+        if (selectedDay.equals(today)) {
+            Calendar now = Calendar.getInstance();
+            int currentHour = now.get(Calendar.HOUR_OF_DAY);
+            int currentMinute = now.get(Calendar.MINUTE);
+            int currentTimeInMinutes = currentHour * 60 + currentMinute;
+            
+            if (startMinutes <= currentTimeInMinutes) {
+                Toast.makeText(this, "לא ניתן להוסיף אימונים בשעות שכבר עברו", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
 
         // Create updated training
         Training updatedTraining = new Training();
@@ -203,7 +338,8 @@ public class EditTrainingActivity extends AppCompatActivity {
         updatedTraining.setStartTime(start);
         updatedTraining.setEndTime(end);
         updatedTraining.setDate(selectedDate.getTimeInMillis());
-        updatedTraining.setDayOfWeek(new SimpleDateFormat("EEEE", Locale.getDefault()).format(selectedDate.getTime()));
+        Locale hebrewLocale = new Locale("he", "IL");
+        updatedTraining.setDayOfWeek(new SimpleDateFormat("EEEE", hebrewLocale).format(selectedDate.getTime()));
         updatedTraining.setNotes(notes);
         updatedTraining.setCreatedAt(originalTraining.getCreatedAt());
 
@@ -239,26 +375,17 @@ public class EditTrainingActivity extends AppCompatActivity {
                     @Override
                     public void onDataChange(DataSnapshot snapshot) {
                         teams.clear();
-                        List<String> names = new ArrayList<>();
-                        int selectedPos = 0;
-                        int pos = 0;
+                        teamMap.clear();
 
                         for (DataSnapshot child : snapshot.getChildren()) {
                             Team team = child.getValue(Team.class);
                             if (team != null) {
                                 teams.add(team);
-                                names.add(team.getName());
-                                if (team.getTeamId().equals(originalTraining.getTeamId())) {
-                                    selectedPos = pos;
-                                }
-                                pos++;
+                                teamMap.put(team.getTeamId(), team);
                             }
                         }
 
-                        teamAdapter.clear();
-                        teamAdapter.addAll(names);
-                        teamAdapter.notifyDataSetChanged();
-                        spinnerTeam.setSelection(selectedPos);
+                        setupTeamChipGroup();
                     }
 
                     @Override
@@ -274,26 +401,17 @@ public class EditTrainingActivity extends AppCompatActivity {
                     @Override
                     public void onDataChange(DataSnapshot snapshot) {
                         courts.clear();
-                        List<String> names = new ArrayList<>();
-                        int selectedPos = 0;
-                        int pos = 0;
+                        courtMap.clear();
 
                         for (DataSnapshot child : snapshot.getChildren()) {
                             Court court = child.getValue(Court.class);
                             if (court != null) {
                                 courts.add(court);
-                                names.add(court.getName());
-                                if (court.getCourtId().equals(originalTraining.getCourtId())) {
-                                    selectedPos = pos;
-                                }
-                                pos++;
+                                courtMap.put(court.getCourtId(), court);
                             }
                         }
 
-                        courtAdapter.clear();
-                        courtAdapter.addAll(names);
-                        courtAdapter.notifyDataSetChanged();
-                        spinnerCourt.setSelection(selectedPos);
+                        setupCourtChipGroup();
                     }
 
                     @Override

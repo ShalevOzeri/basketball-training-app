@@ -2,8 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:padding="16dp">
+    android:layout_height="match_parent">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -19,110 +18,200 @@
             android:theme="@style/ThemeOverlay.MaterialComponents.Dark"
             app:titleTextColor="@android:color/white" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="בחר קבוצה"
-            android:layout_marginTop="16dp"
-            android:textStyle="bold" />
-
-        <Spinner
-            android:id="@+id/spinnerTeam"
+        <!-- Teams Section -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <TextView
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="תאריך"
-            android:layout_marginTop="16dp"
-            android:textStyle="bold" />
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:background="@android:color/white">
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="בחר קבוצה"
+                android:textStyle="bold"
+                android:textSize="16sp" />
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editDate"
+            <androidx.appcompat.widget.SearchView
+                android:id="@+id/searchViewTeams"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:focusable="false"
-                android:inputType="date" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:queryHint="חפש קבוצה..."
+                android:iconifiedByDefault="false"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="שעת התחלה"
-            android:layout_marginTop="16dp"
-            android:textStyle="bold" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editStartTime"
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupTeams"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:focusable="false"
-                android:inputType="time" />
-        </com.google.android.material.textfield.TextInputLayout>
+                app:singleSelection="true" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="שעת סיום"
-            android:layout_marginTop="16dp"
-            android:textStyle="bold" />
+        </LinearLayout>
 
-        <com.google.android.material.textfield.TextInputLayout
+        <!-- Court Section -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:background="@android:color/white"
+            android:layout_marginTop="8dp">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editEndTime"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="בחר מגרש"
+                android:textStyle="bold"
+                android:textSize="16sp" />
+
+            <androidx.appcompat.widget.SearchView
+                android:id="@+id/searchViewCourts"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:focusable="false"
-                android:inputType="time" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:queryHint="חפש מגרש..."
+                android:iconifiedByDefault="false"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="בחר מגרש"
-            android:layout_marginTop="16dp"
-            android:textStyle="bold" />
-
-        <Spinner
-            android:id="@+id/spinnerCourt"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="הערות"
-            android:layout_marginTop="16dp"
-            android:textStyle="bold" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editNotes"
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupCourts"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="הערות" />
-        </com.google.android.material.textfield.TextInputLayout>
+                app:singleSelection="true" />
 
+        </LinearLayout>
+
+        <!-- Date Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:background="@android:color/white"
+            android:layout_marginTop="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="תאריך"
+                android:textStyle="bold"
+                android:textSize="16sp" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editDate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:focusable="false"
+                    android:inputType="date"
+                    android:hint="בחר תאריך" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+        </LinearLayout>
+
+        <!-- Time Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:background="@android:color/white"
+            android:layout_marginTop="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="שעות"
+                android:textStyle="bold"
+                android:textSize="16sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp"
+                android:weightSum="2">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editStartTime"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:focusable="false"
+                        android:inputType="time"
+                        android:hint="התחלה" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editEndTime"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:focusable="false"
+                        android:inputType="time"
+                        android:hint="סיום" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Notes Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:background="@android:color/white"
+            android:layout_marginTop="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="הערות"
+                android:textStyle="bold"
+                android:textSize="16sp" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editNotes"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="הערות"
+                    android:lines="3" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+        </LinearLayout>
+
+        <!-- Save Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSave"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
             android:text="שמור אימון"
             android:textAllCaps="false"
             style="@style/Widget.MaterialComponents.Button" />

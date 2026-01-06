@@ -46,6 +46,15 @@
                 android:layout_marginTop="4dp"
                 android:textColor="@android:color/darker_gray" />
 
+            <TextView
+                android:id="@+id/playerJerseyNumber"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="מספר גופיה: -"
+                android:textSize="14sp"
+                android:layout_marginTop="4dp"
+                android:textColor="@android:color/darker_gray" />
+
         </LinearLayout>
 
         <LinearLayout

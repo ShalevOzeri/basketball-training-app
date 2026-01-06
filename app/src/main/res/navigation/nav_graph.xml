@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <!-- Home Fragment -->
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.example.testapp.fragments.HomeFragment"
+        android:label="ביתי"
+        tools:layout="@layout/fragment_home" >
+        <action
+            android:id="@+id/action_home_to_courts"
+            app:destination="@id/courtsFragment" />
+        <action
+            android:id="@+id/action_home_to_teams"
+            app:destination="@id/teamsFragment" />
+        <action
+            android:id="@+id/action_home_to_allCourtsView"
+            app:destination="@id/allCourtsViewFragment" />
+        <action
+            android:id="@+id/action_home_to_manageUsers"
+            app:destination="@id/manageUsersFragment" />
+        <action
+            android:id="@+id/action_home_to_schedule"
+            app:destination="@id/scheduleFragment" />
+    </fragment>
+
+    <!-- Courts Fragment -->
+    <fragment
+        android:id="@+id/courtsFragment"
+        android:name="com.example.testapp.fragments.CourtsFragment"
+        android:label="מגרשים"
+        tools:layout="@layout/fragment_courts" />
+
+    <!-- Teams Fragment -->
+    <fragment
+        android:id="@+id/teamsFragment"
+        android:name="com.example.testapp.fragments.TeamsFragment"
+        android:label="קבוצות"
+        tools:layout="@layout/fragment_teams" />
+
+    <!-- Schedule Fragment -->
+    <fragment
+        android:id="@+id/scheduleFragment"
+        android:name="com.example.testapp.fragments.ScheduleFragment"
+        android:label="לוח אימונים"
+        tools:layout="@layout/fragment_schedule" />
+
+    <!-- All Courts View Fragment -->
+    <fragment
+        android:id="@+id/allCourtsViewFragment"
+        android:name="com.example.testapp.fragments.AllCourtsViewFragment"
+        android:label="לוח מגרשים"
+        tools:layout="@layout/fragment_all_courts_view" />
+
+    <!-- Manage Users Fragment -->
+    <fragment
+        android:id="@+id/manageUsersFragment"
+        android:name="com.example.testapp.fragments.ManageUsersFragment"
+        android:label="ניהול משתמשים"
+        tools:layout="@layout/fragment_manage_users" />
+
+    <!-- Player Details Fragment - Removed because PlayerDetailsActivity is an Activity, not a Fragment -->
+
+</navigation>

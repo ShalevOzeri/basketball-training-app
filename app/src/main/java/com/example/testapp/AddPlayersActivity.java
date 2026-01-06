@@ -6,16 +6,22 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
+import androidx.core.widget.NestedScrollView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.testapp.adapters.AddPlayersAdapter;
+import com.example.testapp.models.Player;
 import com.example.testapp.models.User;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
@@ -34,7 +40,11 @@ public class AddPlayersActivity extends AppCompatActivity {
 
     private static final String TAG = "AddPlayersActivity";
 
-    private EditText searchEditText;
+    private LinearLayout filterHeader;
+    private NestedScrollView filtersScrollView;
+    private ImageView expandCollapseIcon;
+    private boolean isFiltersExpanded = true; // Start expanded
+    private SearchView searchView;
     private RecyclerView playersRecyclerView;
     private ProgressBar progressBar;
     private TextView emptyView;
@@ -62,7 +72,10 @@ public class AddPlayersActivity extends AppCompatActivity {
         }
         toolbar.setNavigationOnClickListener(v -> finish());
 
-        searchEditText = findViewById(R.id.searchEditText);
+        filterHeader = findViewById(R.id.filterHeader);
+        filtersScrollView = findViewById(R.id.filtersScrollView);
+        expandCollapseIcon = findViewById(R.id.expandCollapseIcon);
+        searchView = findViewById(R.id.searchView);
         playersRecyclerView = findViewById(R.id.playersRecyclerView);
         progressBar = findViewById(R.id.progressBar);
         emptyView = findViewById(R.id.emptyView);
@@ -73,10 +86,38 @@ public class AddPlayersActivity extends AppCompatActivity {
         allPlayers = new ArrayList<>();
         filteredPlayers = new ArrayList<>();
 
+        setupExpandCollapse();
         setupRecyclerView();
         loadPlayers();
         setupSearchListener();
         setupConfirmButton();
+    }
+
+    private void setupExpandCollapse() {
+        filterHeader.setOnClickListener(v -> toggleFilters());
+    }
+
+    private void toggleFilters() {
+        isFiltersExpanded = !isFiltersExpanded;
+        
+        if (isFiltersExpanded) {
+            filtersScrollView.setVisibility(View.VISIBLE);
+            expandCollapseIcon.setRotation(180);
+            
+            // Set max height to 35% of screen height
+            int screenHeight = getResources().getDisplayMetrics().heightPixels;
+            int maxHeight = (int) (screenHeight * 0.35);
+            ViewGroup.LayoutParams params = filtersScrollView.getLayoutParams();
+            params.height = maxHeight;
+            filtersScrollView.setLayoutParams(params);
+        } else {
+            filtersScrollView.setVisibility(View.GONE);
+            expandCollapseIcon.setRotation(0);
+            
+            ViewGroup.LayoutParams params = filtersScrollView.getLayoutParams();
+            params.height = 0;
+            filtersScrollView.setLayoutParams(params);
+        }
     }
 
     private void setupRecyclerView() {
@@ -86,17 +127,17 @@ public class AddPlayersActivity extends AppCompatActivity {
     }
 
     private void setupSearchListener() {
-        searchEditText.addTextChangedListener(new TextWatcher() {
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                filterPlayers(s.toString());
+            public boolean onQueryTextSubmit(String query) {
+                return false;
             }
 
             @Override
-            public void afterTextChanged(Editable s) {}
+            public boolean onQueryTextChange(String newText) {
+                filterPlayers(newText);
+                return true;
+            }
         });
     }
 
@@ -205,6 +246,142 @@ public class AddPlayersActivity extends AppCompatActivity {
             return;
         }
         
+        // First, load the player's profile to get their jersey number
+        DatabaseReference playersRef = FirebaseDatabase.getInstance().getReference("players");
+        playersRef.orderByChild("userId").equalTo(player.getUserId()).limitToFirst(1)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                String playerJerseyNumber = null;
+                
+                if (snapshot.exists()) {
+                    for (DataSnapshot child : snapshot.getChildren()) {
+                        Player playerProfile = child.getValue(Player.class);
+                        if (playerProfile != null) {
+                            playerJerseyNumber = playerProfile.getJerseyNumber();
+                        }
+                        break;
+                    }
+                }
+                
+                // If player has a jersey number, check if another player in the team has the same number
+                if (playerJerseyNumber != null && !playerJerseyNumber.isEmpty()) {
+                    checkJerseyNumberAvailabilityBeforeAdding(playerJerseyNumber, player.getUserId(), player, onSuccess, onError);
+                } else {
+                    // No jersey number, proceed with adding to team
+                    proceedWithAddingPlayerToTeam(player, onSuccess, onError);
+                }
+            }
+            
+            @Override
+            public void onCancelled(DatabaseError error) {
+                onError.call();
+            }
+        });
+    }
+    
+    private void checkJerseyNumberAvailabilityBeforeAdding(String jerseyNumber, String userId, User player, SimpleCallback onSuccess, SimpleCallback onError) {
+        // First, get all players with this jersey number
+        DatabaseReference playersRef = FirebaseDatabase.getInstance().getReference("players");
+        playersRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                List<Player> playersWithSameNumber = new ArrayList<>();
+                
+                if (snapshot.exists()) {
+                    for (DataSnapshot playerSnapshot : snapshot.getChildren()) {
+                        Player existingPlayer = playerSnapshot.getValue(Player.class);
+                        
+                        // Collect all players with the same jersey number (except current user)
+                        if (existingPlayer != null && 
+                            jerseyNumber.equals(existingPlayer.getJerseyNumber()) &&
+                            !userId.equals(existingPlayer.getUserId())) {
+                            playersWithSameNumber.add(existingPlayer);
+                        }
+                    }
+                }
+                
+                // Now check if any of these players are in the current team
+                if (playersWithSameNumber.isEmpty()) {
+                    // No one else has this jersey number, proceed with adding
+                    proceedWithAddingPlayerToTeam(player, onSuccess, onError);
+                } else {
+                    // Check each player to see if they're in the team
+                    final int[] checkCount = {0};
+                    final boolean[] foundDuplicate = {false};
+                    
+                    for (Player otherPlayer : playersWithSameNumber) {
+                        String otherUserId = otherPlayer.getUserId();
+                        if (otherUserId != null && !otherUserId.isEmpty()) {
+                            usersRef.child(otherUserId).addListenerForSingleValueEvent(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(DataSnapshot userSnapshot) {
+                                    checkCount[0]++;
+                                    
+                                    if (!foundDuplicate[0]) {
+                                        User otherUser = userSnapshot.getValue(User.class);
+                                        if (otherUser != null && otherUser.getTeamIds() != null && 
+                                            otherUser.getTeamIds().contains(teamId)) {
+                                            // Found a duplicate in the same team!
+                                            foundDuplicate[0] = true;
+                                            Toast.makeText(AddPlayersActivity.this, "קיים שחקן אחר בקבוצה עם מספר גופיה זה - השחקן יתווסף ללא מספר גופיה", Toast.LENGTH_LONG).show();
+                                            // Clear the jersey number and proceed with adding
+                                            clearPlayerJerseyNumber(userId);
+                                            proceedWithAddingPlayerToTeam(player, onSuccess, onError);
+                                            return;
+                                        }
+                                    }
+                                    
+                                    // If all checks are done and no duplicate found, proceed
+                                    if (checkCount[0] == playersWithSameNumber.size() && !foundDuplicate[0]) {
+                                        proceedWithAddingPlayerToTeam(player, onSuccess, onError);
+                                    }
+                                }
+                                
+                                @Override
+                                public void onCancelled(DatabaseError error) {
+                                    checkCount[0]++;
+                                    if (checkCount[0] == playersWithSameNumber.size() && !foundDuplicate[0]) {
+                                        proceedWithAddingPlayerToTeam(player, onSuccess, onError);
+                                    }
+                                }
+                            });
+                        } else {
+                            checkCount[0]++;
+                        }
+                    }
+                }
+            }
+            
+            @Override
+            public void onCancelled(DatabaseError error) {
+                onError.call();
+            }
+        });
+    }
+    
+    private void clearPlayerJerseyNumber(String userId) {
+        // Clear the jersey number in the player's profile
+        DatabaseReference playersRef = FirebaseDatabase.getInstance().getReference("players");
+        playersRef.orderByChild("userId").equalTo(userId).limitToFirst(1)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    for (DataSnapshot playerSnapshot : snapshot.getChildren()) {
+                        playerSnapshot.getRef().child("jerseyNumber").setValue("");
+                        break;
+                    }
+                }
+            }
+            
+            @Override
+            public void onCancelled(DatabaseError error) {
+                // Ignore errors when clearing jersey number
+            }
+        });
+    }
+    private void proceedWithAddingPlayerToTeam(User player, SimpleCallback onSuccess, SimpleCallback onError) {
         // Read current teamIds from Firebase to avoid overwriting existing data
         DatabaseReference playerRef = usersRef.child(player.getUserId());
         playerRef.child("teamIds").addListenerForSingleValueEvent(new ValueEventListener() {

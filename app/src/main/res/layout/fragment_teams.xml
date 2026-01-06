@@ -4,26 +4,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <LinearLayout
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/teamsRecyclerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
-
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="#FF9800"
-            android:elevation="4dp"
-            app:titleTextColor="@android:color/white" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/courtsRecyclerView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:padding="8dp" />
-
-    </LinearLayout>
+        android:padding="8dp" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"

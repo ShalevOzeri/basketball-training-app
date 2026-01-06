@@ -1,71 +1,70 @@
-package com.example.testapp;
+package com.example.testapp.fragments;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.MenuItem;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.testapp.AddEditCourtActivity;
+import com.example.testapp.R;
 import com.example.testapp.adapters.CourtAdapter;
 import com.example.testapp.models.Court;
 import com.example.testapp.viewmodel.CourtViewModel;
-import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
-public class CourtsActivity extends AppCompatActivity {
+public class CourtsFragment extends Fragment {
 
     private RecyclerView recyclerView;
     private CourtAdapter adapter;
     private CourtViewModel viewModel;
     private FloatingActionButton fab;
-    private MaterialToolbar toolbar;
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_courts, container, false);
+    }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_courts);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
-        initializeViews();
-        setupToolbar();
+        initializeViews(view);
         setupRecyclerView();
         setupViewModel();
         setupFab();
     }
 
-    private void initializeViews() {
-        toolbar = findViewById(R.id.toolbar);
-        recyclerView = findViewById(R.id.courtsRecyclerView);
-        fab = findViewById(R.id.fab);
-    }
-
-    private void setupToolbar() {
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("מגרשים");
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
+    private void initializeViews(View view) {
+        recyclerView = view.findViewById(R.id.courtsRecyclerView);
+        fab = view.findViewById(R.id.fab);
     }
 
     private void setupRecyclerView() {
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new CourtAdapter(court -> showCourtOptionsDialog(court));
         recyclerView.setAdapter(adapter);
     }
 
     private void setupViewModel() {
         viewModel = new ViewModelProvider(this).get(CourtViewModel.class);
-        viewModel.getCourts().observe(this, courts -> {
+        viewModel.getCourts().observe(getViewLifecycleOwner(), courts -> {
             adapter.setCourts(courts);
         });
 
-        viewModel.getErrors().observe(this, error -> {
+        viewModel.getErrors().observe(getViewLifecycleOwner(), error -> {
             if (error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -75,21 +74,20 @@ public class CourtsActivity extends AppCompatActivity {
     }
 
     private void showAddCourtDialog() {
-        // Create a full-screen dialog instead
-        Intent intent = new Intent(this, AddEditCourtActivity.class);
+        Intent intent = new Intent(requireActivity(), AddEditCourtActivity.class);
         startActivity(intent);
     }
 
     private void showCourtOptionsDialog(Court court) {
         String[] options = {"ערוך", "מחק"};
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(requireContext())
             .setTitle(court.getName())
             .setItems(options, (dialog, which) -> {
                 switch (which) {
-                    case 0: // Edit
+                    case 0:
                         openEditCourtActivity(court);
                         break;
-                    case 1: // Delete
+                    case 1:
                         confirmDelete(court);
                         break;
                 }
@@ -98,26 +96,17 @@ public class CourtsActivity extends AppCompatActivity {
     }
     
     private void openEditCourtActivity(Court court) {
-        Intent intent = new Intent(this, AddEditCourtActivity.class);
+        Intent intent = new Intent(requireActivity(), AddEditCourtActivity.class);
         intent.putExtra("COURT_ID", court.getCourtId());
         startActivity(intent);
     }
 
     private void confirmDelete(Court court) {
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(requireContext())
             .setTitle("מחיקת מגרש")
             .setMessage("האם אתה בטוח שברצונך למחוק את " + court.getName() + "?")
             .setPositiveButton("מחק", (dialog, which) -> viewModel.deleteCourt(court.getCourtId()))
             .setNegativeButton("ביטול", null)
             .show();
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            finish();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
     }
 }

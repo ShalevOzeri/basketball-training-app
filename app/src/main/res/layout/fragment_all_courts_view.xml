@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- Filters Section - Collapsible -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#F5F5F5"
+        android:elevation="2dp">
+
+        <!-- Filter Header - Always visible -->
+        <LinearLayout
+            android:id="@+id/filterHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="12dp"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="סינון תצוגת מגרשים"
+                android:textStyle="bold"
+                android:textSize="16sp" />
+
+            <ImageView
+                android:id="@+id/expandCollapseIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/arrow_down_float"
+                android:contentDescription="הרחב/כווץ" />
+
+        </LinearLayout>
+
+        <!-- Filters Content - Collapsible -->
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/filtersScrollView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:visibility="gone"
+            android:fillViewport="false">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:paddingTop="0dp">
+
+        <!-- Court filter -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="מגרש:"
+                android:textStyle="bold"
+                android:textSize="14sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSelectAllCourts"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="סמן/בטל הכל"
+                android:textSize="11sp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+        </LinearLayout>
+
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/searchViewCourts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:queryHint="חפש מגרש..."
+            android:iconifiedByDefault="false"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupCourts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            app:singleSelection="false" />
+
+        <!-- Days filter section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="ימים:"
+                android:textStyle="bold"
+                android:textSize="14sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSelectAllDays"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="סמן/בטל הכל"
+                android:textSize="11sp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+        </LinearLayout>
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupDays"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:singleSelection="false" />
+
+        <!-- Team filter section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="קבוצות:"
+                android:textStyle="bold"
+                android:textSize="14sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSelectAllTeams"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="סמן/בטל הכל"
+                android:textSize="11sp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+        </LinearLayout>
+
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/searchViewTeams"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:queryHint="חפש קבוצה..."
+            android:iconifiedByDefault="false"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupTeams"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:singleSelection="false" />
+
+            </LinearLayout>
+
+        </androidx.core.widget.NestedScrollView>
+
+    </LinearLayout>
+
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:id="@+id/courtsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp" />
+
+    </ScrollView>
+
+</LinearLayout>

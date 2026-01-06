@@ -10,15 +10,18 @@ import com.example.testapp.repository.TrainingRepository;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Set;
 
 public class TrainingViewModel extends ViewModel {
     private final TrainingRepository repository;
     private final LiveData<List<Training>> trainings;
     private final MediatorLiveData<List<Training>> filteredTrainings;
-    private String currentTeamFilter = null;
-    private String currentDayFilter = null;
-    private String currentLocationFilter = null;
+    private Set<String> selectedTeamIds = null;
+    private Set<String> selectedDays = null;
+    private Set<String> selectedCourtIds = null;
+    private Set<Integer> selectedMonths = null;
     private boolean showOnlyThisWeek = false;
+    private boolean hidePastTrainings = true;
 
     public TrainingViewModel() {
         repository = new TrainingRepository();
@@ -45,18 +48,23 @@ public class TrainingViewModel extends ViewModel {
         return repository.getTrainingsByCourt(courtId);
     }
     
-    public void setTeamFilter(String teamId) {
-        this.currentTeamFilter = teamId;
+    public void setTeamFilter(Set<String> teamIds) {
+        this.selectedTeamIds = teamIds;
         applyFilters();
     }
     
-    public void setDayFilter(String day) {
-        this.currentDayFilter = day;
+    public void setDayFilter(Set<String> days) {
+        this.selectedDays = days;
         applyFilters();
     }
     
-    public void setLocationFilter(String location) {
-        this.currentLocationFilter = location;
+    public void setLocationFilter(Set<String> courtIds) {
+        this.selectedCourtIds = courtIds;
+        applyFilters();
+    }
+    
+    public void setMonthFilter(Set<Integer> months) {
+        this.selectedMonths = months;
         applyFilters();
     }
     
@@ -65,11 +73,18 @@ public class TrainingViewModel extends ViewModel {
         applyFilters();
     }
     
+    public void setHidePastTrainings(boolean hidePastTrainings) {
+        this.hidePastTrainings = hidePastTrainings;
+        applyFilters();
+    }
+    
     public void clearFilters() {
-        this.currentTeamFilter = null;
-        this.currentDayFilter = null;
-        this.currentLocationFilter = null;
+        this.selectedTeamIds = null;
+        this.selectedDays = null;
+        this.selectedCourtIds = null;
+        this.selectedMonths = null;
         this.showOnlyThisWeek = false;
+        this.hidePastTrainings = true;
         applyFilters();
     }
     
@@ -99,23 +114,33 @@ public class TrainingViewModel extends ViewModel {
         for (Training training : allTrainings) {
             boolean matches = true;
             
-            // Apply team filter
-            if (currentTeamFilter != null && !currentTeamFilter.isEmpty()) {
-                if (!currentTeamFilter.equals(training.getTeamId())) {
+            // Apply team filter (multi-select)
+            if (selectedTeamIds != null && !selectedTeamIds.isEmpty()) {
+                if (!selectedTeamIds.contains(training.getTeamId())) {
                     matches = false;
                 }
             }
             
-            // Apply day filter
-            if (currentDayFilter != null && !currentDayFilter.isEmpty()) {
-                if (!currentDayFilter.equals(training.getDayOfWeek())) {
+            // Apply day filter (multi-select)
+            if (selectedDays != null && !selectedDays.isEmpty()) {
+                if (!selectedDays.contains(training.getDayOfWeek())) {
                     matches = false;
                 }
             }
             
-            // Apply location filter (by court name)
-            if (currentLocationFilter != null && !currentLocationFilter.isEmpty()) {
-                if (!currentLocationFilter.equals(training.getCourtName())) {
+            // Apply location/court filter (multi-select)
+            if (selectedCourtIds != null && !selectedCourtIds.isEmpty()) {
+                if (!selectedCourtIds.contains(training.getCourtId())) {
+                    matches = false;
+                }
+            }
+            
+            // Apply month filter (multi-select)
+            if (selectedMonths != null && !selectedMonths.isEmpty()) {
+                Calendar trainingCal = Calendar.getInstance();
+                trainingCal.setTimeInMillis(training.getDate());
+                int trainingMonth = trainingCal.get(Calendar.MONTH) + 1; // Calendar.MONTH is 0-based
+                if (!selectedMonths.contains(trainingMonth)) {
                     matches = false;
                 }
             }
@@ -124,6 +149,16 @@ public class TrainingViewModel extends ViewModel {
             if (showOnlyThisWeek) {
                 long trainingDate = training.getDate();
                 if (trainingDate < weekStartMillis || trainingDate >= weekEndMillis) {
+                    matches = false;
+                }
+            }
+            
+            // Apply hide past trainings filter
+            if (hidePastTrainings) {
+                long trainingDate = training.getDate();
+                long currentTimeMillis = System.currentTimeMillis();
+                // Hide trainings that ended before current time
+                if (trainingDate < currentTimeMillis) {
                     matches = false;
                 }
             }

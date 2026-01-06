@@ -2,6 +2,7 @@ package com.example.testapp;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Environment;
 import android.text.Editable;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -24,17 +25,32 @@ import com.example.testapp.models.Player;
 import com.example.testapp.models.Team;
 import com.example.testapp.models.User;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 public class TeamPlayersActivity extends AppCompatActivity {
@@ -78,6 +94,13 @@ public class TeamPlayersActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        // Reload players when returning from AddPlayersActivity
+        loadTeamPlayers();
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(android.view.Menu menu) {
         getMenuInflater().inflate(R.menu.team_players_menu, menu);
         return true;
@@ -86,7 +109,14 @@ public class TeamPlayersActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.action_add_player) {
-            showAddPlayersDialog();
+            // Open AddPlayersActivity instead of dialog
+            Intent intent = new Intent(TeamPlayersActivity.this, AddPlayersActivity.class);
+            intent.putExtra("teamId", teamId);
+            intent.putExtra("teamName", teamName);
+            startActivity(intent);
+            return true;
+        } else if (item.getItemId() == R.id.action_export_players) {
+            exportPlayersToExcel();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -240,6 +270,7 @@ public class TeamPlayersActivity extends AppCompatActivity {
         Intent intent = new Intent(this, PlayerDetailsActivity.class);
         intent.putExtra("playerId", player.getPlayerId());
         intent.putExtra("userId", player.getUserId());
+        intent.putExtra("teamId", teamId);
         startActivity(intent);
     }
 
@@ -446,5 +477,137 @@ public class TeamPlayersActivity extends AppCompatActivity {
         usersRef.child(player.getUserId()).updateChildren(updates)
             .addOnSuccessListener(aVoid -> loadTeamPlayers())
             .addOnFailureListener(e -> Toast.makeText(TeamPlayersActivity.this, "שגיאה בהוספת שחקן", Toast.LENGTH_SHORT).show());
+    }
+
+    private void exportPlayersToExcel() {
+        List<Player> currentPlayers = adapter.getPlayers();
+        if (currentPlayers == null || currentPlayers.isEmpty()) {
+            Toast.makeText(this, "אין שחקנים לייצוא", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        progressBar.setVisibility(View.VISIBLE);
+
+        try {
+            Workbook workbook = new XSSFWorkbook();
+            Sheet sheet = workbook.createSheet(teamName);
+
+            // Set column width
+            sheet.setColumnWidth(0, 3000);
+            sheet.setColumnWidth(1, 3000);
+            sheet.setColumnWidth(2, 2500);
+            sheet.setColumnWidth(3, 3000);
+            sheet.setColumnWidth(4, 3500);
+            sheet.setColumnWidth(5, 3500);
+            sheet.setColumnWidth(6, 3000);
+            sheet.setColumnWidth(7, 3000);
+            sheet.setColumnWidth(8, 2500);
+            sheet.setColumnWidth(9, 2500);
+
+            // Create header row with proper RTL order
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {
+                "שם פרטי",
+                "שם משפחה",
+                "כיתה",
+                "בית ספר",
+                "טלפון שחקן",
+                "טלפון הורה",
+                "תעודת זהות",
+                "תאריך לידה",
+                "מידת גופיה",
+                "מספר גופיה"
+            };
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // Add player data rows
+            int rowNum = 1;
+            for (Player player : currentPlayers) {
+                Row row = sheet.createRow(rowNum++);
+                
+                row.createCell(0).setCellValue(nvl(player.getFirstName()));
+                row.createCell(1).setCellValue(nvl(player.getLastName()));
+                row.createCell(2).setCellValue(nvl(player.getGrade()));
+                row.createCell(3).setCellValue(nvl(player.getSchool()));
+                row.createCell(4).setCellValue(nvl(player.getPlayerPhone()));
+                row.createCell(5).setCellValue(nvl(player.getParentPhone()));
+                row.createCell(6).setCellValue(nvl(player.getIdNumber()));
+                row.createCell(7).setCellValue(nvl(player.getBirthDate()));
+                row.createCell(8).setCellValue(nvl(player.getShirtSize()));
+                row.createCell(9).setCellValue(nvl(player.getJerseyNumber()));
+            }
+
+            // Create file and save
+            File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            String fileName = "Players_" + teamName + "_" + System.currentTimeMillis() + ".xlsx";
+            File file = new File(downloadsDir, fileName);
+
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                workbook.write(fos);
+                workbook.close();
+
+                // Get current user email and send
+                String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                FirebaseDatabase.getInstance().getReference("users").child(userId)
+                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot snapshot) {
+                            User user = snapshot.getValue(User.class);
+                            if (user != null && user.getEmail() != null) {
+                                sendExcelViaEmail(file, user.getEmail(), fileName);
+                            } else {
+                                progressBar.setVisibility(View.GONE);
+                                Toast.makeText(TeamPlayersActivity.this, "לא ניתן למצוא את כתובת המייל שלך", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled(DatabaseError error) {
+                            progressBar.setVisibility(View.GONE);
+                            Toast.makeText(TeamPlayersActivity.this, "שגיאה בטעינת נתוני המשתמש", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+            }
+        } catch (IOException e) {
+            progressBar.setVisibility(View.GONE);
+            Toast.makeText(this, "שגיאה ביצירת הקובץ: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void sendExcelViaEmail(File file, String userEmail, String fileName) {
+        Intent emailIntent = new Intent(Intent.ACTION_SEND);
+        emailIntent.setType("message/rfc822");
+        emailIntent.putExtra(Intent.EXTRA_EMAIL, new String[]{userEmail});
+        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "דוח שחקנים - " + teamName);
+        emailIntent.putExtra(Intent.EXTRA_TEXT, "מצורף דוח רשימת שחקני הקבוצה");
+        
+        try {
+            android.net.Uri fileUri = androidx.core.content.FileProvider.getUriForFile(
+                this,
+                getApplicationContext().getPackageName() + ".fileprovider",
+                file
+            );
+            emailIntent.putExtra(Intent.EXTRA_STREAM, fileUri);
+            emailIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            progressBar.setVisibility(View.GONE);
+            startActivity(Intent.createChooser(emailIntent, "בחר אפליקציית דוא\"ל"));
+        } catch (Exception e) {
+            progressBar.setVisibility(View.GONE);
+            Toast.makeText(this, "שגיאה בשליחת הדוא\"ל: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private String nvl(String value) {
+        return value != null ? value : "";
     }
 }

@@ -6,6 +6,9 @@ if "%DIRNAME%" == "" set DIRNAME=.
 set APP_BASE_NAME=%~n0
 set APP_HOME=%DIRNAME%
 
+@rem Set JAVA_HOME to Android Studio JBR (Java 21)
+if not defined JAVA_HOME set JAVA_HOME=C:\Program Files\Android\Android Studio\jbr
+
 @rem Find java.exe
 if defined JAVA_HOME goto findJavaFromJavaHome
 
