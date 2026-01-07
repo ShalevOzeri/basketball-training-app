@@ -3,6 +3,7 @@ package com.example.testapp;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -12,13 +13,15 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.android.material.appbar.MaterialToolbar;
 import com.example.testapp.models.User;
 import com.example.testapp.repository.UserRepository;
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.textfield.TextInputLayout;
 
 public class RegisterActivity extends AppCompatActivity {
 
     private EditText nameEditText, emailEditText, passwordEditText, phoneEditText;
+    private TextInputLayout emailInputLayout;
     private Spinner roleSpinner;
     private Button registerButton;
     private ProgressBar progressBar;
@@ -50,16 +53,52 @@ public class RegisterActivity extends AppCompatActivity {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, roles);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         roleSpinner.setAdapter(adapter);
+
+        roleSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                updateEmailVisibility(getSelectedRole());
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                updateEmailVisibility(getSelectedRole());
+            }
+        });
+
+        // Ensure the initial state reflects the default selection
+        updateEmailVisibility(getSelectedRole());
     }
 
     private void initializeViews() {
         nameEditText = findViewById(R.id.nameEditText);
         emailEditText = findViewById(R.id.emailEditText);
+        emailInputLayout = findViewById(R.id.emailInputLayout);
         passwordEditText = findViewById(R.id.passwordEditText);
         phoneEditText = findViewById(R.id.phoneEditText);
         roleSpinner = findViewById(R.id.roleSpinner);
         registerButton = findViewById(R.id.registerButton);
         progressBar = findViewById(R.id.progressBar);
+    }
+
+    private String getSelectedRole() {
+        String selectedRole = roleSpinner.getSelectedItem().toString();
+        if (selectedRole.contains("COACH")) {
+            return "COACH";
+        } else if (selectedRole.contains("PLAYER")) {
+            return "PLAYER";
+        }
+        return "COACH";
+    }
+
+    private void updateEmailVisibility(String role) {
+        if (emailInputLayout == null) return;
+        boolean hideEmail = "PLAYER".equals(role);
+        emailInputLayout.setVisibility(hideEmail ? View.GONE : View.VISIBLE);
+        if (hideEmail) {
+            emailEditText.setText("");
+            emailEditText.setError(null);
+        }
     }
 
     private void registerUser() {
@@ -69,15 +108,7 @@ public class RegisterActivity extends AppCompatActivity {
         String phone = phoneEditText.getText().toString().trim();
         
         // Get role from spinner
-        String selectedRole = roleSpinner.getSelectedItem().toString();
-        String role;
-        if (selectedRole.contains("COACH")) {
-            role = "COACH";
-        } else if (selectedRole.contains("PLAYER")) {
-            role = "PLAYER";
-        } else {
-            role = "COACH"; // Default
-        }
+        String role = getSelectedRole();
 
         if (TextUtils.isEmpty(name)) {
             nameEditText.setError("Name is required");

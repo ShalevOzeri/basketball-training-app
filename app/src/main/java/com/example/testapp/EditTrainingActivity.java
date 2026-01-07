@@ -2,15 +2,19 @@ package com.example.testapp;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
@@ -151,13 +155,38 @@ public class EditTrainingActivity extends AppCompatActivity {
 
         // Allow both tapping to open the dialog and manual typing
         editDate.setOnClickListener(v -> {
-            DatePickerDialog dialog = new DatePickerDialog(this, android.R.style.Theme_Material_Light_Dialog_Alert, (DatePicker view, int year, int month, int dayOfMonth) -> {
+            DatePicker datePicker = new DatePicker(this);
+            datePicker.init(selectedDate.get(Calendar.YEAR), selectedDate.get(Calendar.MONTH), selectedDate.get(Calendar.DAY_OF_MONTH), (view, year, monthOfYear, dayOfMonth) -> {
+                // Update selectedDate whenever user changes date in the picker
                 selectedDate.set(Calendar.YEAR, year);
-                selectedDate.set(Calendar.MONTH, month);
+                selectedDate.set(Calendar.MONTH, monthOfYear);
                 selectedDate.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-                editDate.setText(dateFmt.format(selectedDate.getTime()));
-            }, selectedDate.get(Calendar.YEAR), selectedDate.get(Calendar.MONTH), selectedDate.get(Calendar.DAY_OF_MONTH));
-            dialog.show();
+            });
+            
+            // Wrap DatePicker with proper layout parameters so buttons are visible
+            LinearLayout container = new LinearLayout(this);
+            container.setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+            ));
+            LinearLayout.LayoutParams pickerParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    400  // Fixed height for DatePicker
+            );
+            datePicker.setLayoutParams(pickerParams);
+            container.addView(datePicker);
+            
+            AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert);
+            builder.setTitle(getString(R.string.date_picker_title))
+                    .setView(container)
+                    .setPositiveButton(getString(R.string.date_picker_save), (dialog, which) -> {
+                        editDate.setText(dateFmt.format(selectedDate.getTime()));
+                    })
+                    .setNegativeButton(getString(R.string.date_picker_cancel), (dialog, which) -> {
+                        // Restore original date if cancelled
+                        dialog.cancel();
+                    })
+                    .show();
         });
         
         // Update the date when typing manually and leaving the field

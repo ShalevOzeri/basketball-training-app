@@ -18,4 +18,9 @@
     <string name="calendar_signed_out">Signed out from calendar</string>
     <string name="calendar_sync_success">Training synced to calendar</string>
     <string name="calendar_sync_failed">Failed to sync training to calendar</string>
+    
+    <!-- Date Picker Dialog Strings -->
+    <string name="date_picker_title">בחר תאריך</string>
+    <string name="date_picker_save">שמור</string>
+    <string name="date_picker_cancel">ביטול</string>
 </resources>
