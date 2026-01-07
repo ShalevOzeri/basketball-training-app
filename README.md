@@ -347,9 +347,9 @@ basketball-training-mgmt/
 פרויקט גמר - מערכות מידע  
 שנת לימודים: 2025
 
-📧 Email: [your-email@example.com]  
-🔗 LinkedIn: [Your LinkedIn Profile]  
-💻 GitHub: [Your GitHub]
+📧 Email: shalevozeri951@gmail.com  
+🔗 LinkedIn: https://www.linkedin.com/in/shalev-shalom-ozeri-786182355  
+💻 GitHub: https://github.com/ShalevOzeri
 
 ---
 
