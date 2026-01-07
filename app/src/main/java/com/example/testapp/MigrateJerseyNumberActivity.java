@@ -29,10 +29,10 @@ public class MigrateJerseyNumberActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_migrate_jersey_number);
         
-        // אתחול Firebase
+        // Initialize Firebase
         playersRef = FirebaseDatabase.getInstance().getReference("players");
         
-        // אתחול UI
+        // Initialize UI
         migrateButton = findViewById(R.id.migrateButton);
         progressBar = findViewById(R.id.progressBar);
         statusTextView = findViewById(R.id.statusTextView);
@@ -72,7 +72,7 @@ public class MigrateJerseyNumberActivity extends AppCompatActivity {
                     Player player = playerSnapshot.getValue(Player.class);
                     
                     if (player != null) {
-                        // אם השדה jerseyNumber לא קיים או הוא null, נוסיף אותו כמחרוזת ריקה
+                        // If jerseyNumber is missing or null, add it as an empty string
                         if (player.getJerseyNumber() == null) {
                             updates.put(playerKey + "/jerseyNumber", "");
                         }
@@ -88,7 +88,7 @@ public class MigrateJerseyNumberActivity extends AppCompatActivity {
                     return;
                 }
                 
-                // ביצוע העדכון בפעולה אחת
+                // Apply the update in a single operation
                 playersRef.updateChildren(updates)
                     .addOnSuccessListener(aVoid -> {
                         statusTextView.setText("המיגרציה הושלמה בהצלחה!\n" + 

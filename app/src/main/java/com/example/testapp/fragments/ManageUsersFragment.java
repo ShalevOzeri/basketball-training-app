@@ -569,7 +569,7 @@ public class ManageUsersFragment extends Fragment {
                 }
                 userRole.setText(roleText);
                 
-                // הצגת שמות הקבוצות
+                // Display team names
                 StringBuilder teamsText = new StringBuilder();
                 if ("PLAYER".equals(user.getRole()) && user.getTeamIds() != null && !user.getTeamIds().isEmpty()) {
                     List<String> teamNames = user.getTeamIds().stream()
@@ -588,7 +588,7 @@ public class ManageUsersFragment extends Fragment {
                     userTeam.setVisibility(View.VISIBLE);
                 }
                 
-                // הצגת/הסתרת כפתור שינוי תפקיד
+                // Show or hide the change-role button
                 if ("PLAYER".equals(user.getRole())) {
                     changeRoleButton.setVisibility(View.GONE);
                 } else {

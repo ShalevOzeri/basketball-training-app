@@ -13,7 +13,9 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 
 import com.example.testapp.models.Player;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -168,7 +170,7 @@ public class PlayerDetailsActivity extends AppCompatActivity {
                 if (snapshot.exists()) {
                     Player player = snapshot.getValue(Player.class);
                     if (player != null) {
-                        // עדכן את playerId מ-Firebase key
+                        // Update playerId from the Firebase key
                         playerId = playerIdFromUser;
                         populatePlayerFields(player);
                     }
@@ -207,7 +209,7 @@ public class PlayerDetailsActivity extends AppCompatActivity {
                         for (DataSnapshot child : snapshot.getChildren()) {
                             Player player = child.getValue(Player.class);
                             if (player != null) {
-                                // עדכן את playerId מ-Firebase key
+                                // Update playerId from the Firebase key
                                 playerId = child.getKey();
                                 populatePlayerFields(player);
                                 break;
@@ -277,33 +279,18 @@ public class PlayerDetailsActivity extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
         saveButton.setEnabled(false);
 
-        // בדוק זמינות מספר גופיה
+        // Check jersey number availability across all of the player's teams
         if (!TextUtils.isEmpty(jerseyNumber)) {
-            if (teamId != null && !teamId.isEmpty()) {
-                // בדוק בקבוצה הספציפית
-                checkJerseyNumberAvailability(teamId, jerseyNumber, userId, isAvailable -> {
-                    if (!isAvailable) {
-                        progressBar.setVisibility(View.GONE);
-                        saveButton.setEnabled(true);
-                        Toast.makeText(PlayerDetailsActivity.this, "מספר גופיה זה כבר בשימוש בקבוצה", Toast.LENGTH_SHORT).show();
-                        jerseyNumberEditText.setText("");
-                        return;
-                    }
-                    proceedWithSave(firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, jerseyNumber, shirtSize);
-                });
-            } else {
-                // בדוק בכל הקבוצות של השחקן
-                checkJerseyNumberAvailabilityInAllTeams(jerseyNumber, userId, isAvailable -> {
-                    if (!isAvailable) {
-                        progressBar.setVisibility(View.GONE);
-                        saveButton.setEnabled(true);
-                        Toast.makeText(PlayerDetailsActivity.this, "מספר גופיה זה כבר בשימוש בקבוצה אחרת", Toast.LENGTH_SHORT).show();
-                        jerseyNumberEditText.setText("");
-                        return;
-                    }
-                    proceedWithSave(firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, jerseyNumber, shirtSize);
-                });
-            }
+            checkJerseyNumberInAllPlayerTeams(jerseyNumber, userId, isAvailable -> {
+                if (!isAvailable) {
+                    progressBar.setVisibility(View.GONE);
+                    saveButton.setEnabled(true);
+                    Toast.makeText(PlayerDetailsActivity.this, "מספר גופיה זה כבר בשימוש באחת מהקבוצות שלך", Toast.LENGTH_LONG).show();
+                    jerseyNumberEditText.setText("");
+                    return;
+                }
+                proceedWithSave(firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, jerseyNumber, shirtSize);
+            });
         } else {
             proceedWithSave(firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, jerseyNumber, shirtSize);
         }
@@ -417,31 +404,73 @@ public class PlayerDetailsActivity extends AppCompatActivity {
             });
     }
     
-    private void checkJerseyNumberAvailability(String teamId, String jerseyNumber, String currentUserId,
-                                              OnJerseyCheckListener listener) {
-        if (teamId == null || teamId.isEmpty()) {
-            listener.onResult(true);
-            return;
-        }
-        
-        playersRef.orderByChild("teamId").equalTo(teamId)
+    /**
+     * Verifies a jersey number is available across every team the player belongs to.
+     * A player can join multiple teams, and each team must not have duplicate jersey numbers.
+     */
+    private void checkJerseyNumberInAllPlayerTeams(String jerseyNumber, String currentUserId,
+                                                   OnJerseyCheckListener listener) {
+        // Step 1: fetch the current player's team list
+        usersRef.child(currentUserId).child("teamIds")
             .addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot snapshot) {
-                    boolean isAvailable = true;
-                    for (DataSnapshot playerSnapshot : snapshot.getChildren()) {
-                        Player player = playerSnapshot.getValue(Player.class);
-                        String playerKey = playerSnapshot.getKey();
-                        
-                        // בדוק אם מספר הגופיה קיים ושונה מהשחקן הנוכחי
-                        if (player != null &&
-                            jerseyNumber.equals(player.getJerseyNumber()) &&
-                            !playerKey.equals(playerId)) {
-                            isAvailable = false;
-                            break;
+                    List<String> playerTeamIds = new ArrayList<>();
+                    
+                    if (snapshot.exists()) {
+                        for (DataSnapshot teamSnapshot : snapshot.getChildren()) {
+                            String teamId = teamSnapshot.getValue(String.class);
+                            if (teamId != null) {
+                                playerTeamIds.add(teamId);
+                            }
                         }
                     }
-                    listener.onResult(isAvailable);
+                    
+                    // If the player is not in any team, the jersey number is always available
+                    if (playerTeamIds.isEmpty()) {
+                        listener.onResult(true);
+                        return;
+                    }
+                    
+                    // Step 2: check every other player in the system
+                    playersRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot playersSnapshot) {
+                            // For each other player in the system
+                            for (DataSnapshot playerSnapshot : playersSnapshot.getChildren()) {
+                                Player otherPlayer = playerSnapshot.getValue(Player.class);
+                                String otherPlayerKey = playerSnapshot.getKey();
+                                
+                                // Skip the current player
+                                if (otherPlayer == null || 
+                                    otherPlayerKey.equals(playerId) ||
+                                    currentUserId.equals(otherPlayer.getUserId())) {
+                                    continue;
+                                }
+                                
+                                // Check whether the other player has the same jersey number
+                                if (!jerseyNumber.equals(otherPlayer.getJerseyNumber())) {
+                                    continue;
+                                }
+                                
+                                // Step 3: verify whether the other player is in any of the current player's teams
+                                String otherUserId = otherPlayer.getUserId();
+                                if (otherUserId == null) continue;
+                                
+                                // Need to inspect the other player's teams
+                                checkOtherPlayerTeams(otherUserId, playerTeamIds, listener);
+                                return; // Found another player with the same number - now check their teams
+                            }
+                            
+                            // No other player found with this jersey number
+                            listener.onResult(true);
+                        }
+
+                        @Override
+                        public void onCancelled(DatabaseError error) {
+                            listener.onResult(true); // In case of error, assume available
+                        }
+                    });
                 }
 
                 @Override
@@ -451,33 +480,37 @@ public class PlayerDetailsActivity extends AppCompatActivity {
             });
     }
     
-    private void checkJerseyNumberAvailabilityInAllTeams(String jerseyNumber, String currentUserId,
-                                                        OnJerseyCheckListener listener) {
-        // בדוק בכל השחקנים אם המספר תפוס אצל שחקן אחר
-        playersRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot snapshot) {
-                boolean isAvailable = true;
-                for (DataSnapshot playerSnapshot : snapshot.getChildren()) {
-                    Player player = playerSnapshot.getValue(Player.class);
-                    String playerKey = playerSnapshot.getKey();
-                    
-                    // בדוק אם מספר הגופיה קיים ושונה מהשחקן הנוכחי
-                    if (player != null &&
-                        jerseyNumber.equals(player.getJerseyNumber()) &&
-                        !playerKey.equals(playerId)) {
-                        isAvailable = false;
-                        break;
+    /**
+     * Checks whether another player with the same jersey number is in any of the current player's teams
+     */
+    private void checkOtherPlayerTeams(String otherUserId, List<String> currentPlayerTeamIds,
+                                      OnJerseyCheckListener listener) {
+        usersRef.child(otherUserId).child("teamIds")
+            .addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot snapshot) {
+                    if (snapshot.exists()) {
+                        for (DataSnapshot teamSnapshot : snapshot.getChildren()) {
+                            String otherPlayerTeamId = teamSnapshot.getValue(String.class);
+                            
+                            // Check for overlap between the teams
+                            if (otherPlayerTeamId != null && currentPlayerTeamIds.contains(otherPlayerTeamId)) {
+                                // Overlap found: both players are in the same team with the same jersey number
+                                listener.onResult(false);
+                                return;
+                            }
+                        }
                     }
+                    
+                    // No overlap between teams - jersey number is available
+                    listener.onResult(true);
                 }
-                listener.onResult(isAvailable);
-            }
 
-            @Override
-            public void onCancelled(DatabaseError error) {
-                listener.onResult(true);
-            }
-        });
+                @Override
+                public void onCancelled(DatabaseError error) {
+                    listener.onResult(true);
+                }
+            });
     }
     
     private interface OnJerseyCheckListener {

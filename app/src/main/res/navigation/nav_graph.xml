@@ -26,6 +26,9 @@
         <action
             android:id="@+id/action_home_to_schedule"
             app:destination="@id/scheduleFragment" />
+        <action
+            android:id="@+id/action_home_to_scheduleGrid"
+            app:destination="@id/scheduleGridFragment" />
     </fragment>
 
     <!-- Courts Fragment -->
@@ -55,6 +58,13 @@
         android:name="com.example.testapp.fragments.AllCourtsViewFragment"
         android:label="לוח מגרשים"
         tools:layout="@layout/fragment_all_courts_view" />
+
+    <!-- Schedule Grid Fragment - New visual scheduling interface -->
+    <fragment
+        android:id="@+id/scheduleGridFragment"
+        android:name="com.example.testapp.fragments.ScheduleGridFragment"
+        android:label="תזמון אימונים חכם"
+        tools:layout="@layout/fragment_schedule_grid" />
 
     <!-- Manage Users Fragment -->
     <fragment

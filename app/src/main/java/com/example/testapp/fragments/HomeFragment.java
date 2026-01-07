@@ -26,7 +26,7 @@ import com.google.firebase.database.ValueEventListener;
 
 public class HomeFragment extends Fragment {
 
-    private CardView courtsCard, teamsCard, scheduleCard, allCourtsCard, manageUsersCard, playerDetailsCard;
+    private CardView courtsCard, teamsCard, scheduleCard, scheduleGridCard, allCourtsCard, manageUsersCard, playerDetailsCard;
     private UserRepository userRepository;
     private User currentUser;
 
@@ -51,13 +51,14 @@ public class HomeFragment extends Fragment {
         courtsCard = view.findViewById(R.id.courtsCard);
         teamsCard = view.findViewById(R.id.teamsCard);
         scheduleCard = view.findViewById(R.id.scheduleCard);
+        scheduleGridCard = view.findViewById(R.id.scheduleGridCard);
         allCourtsCard = view.findViewById(R.id.allCourtsCard);
         manageUsersCard = view.findViewById(R.id.manageUsersCard);
         playerDetailsCard = view.findViewById(R.id.playerDetailsCard);
     }
 
     private void setupCardClicks(View view) {
-        // ניווט למגרשים
+        // Navigate to courts
         if (courtsCard != null) {
             courtsCard.setOnClickListener(v -> {
                 try {
@@ -68,7 +69,7 @@ public class HomeFragment extends Fragment {
             });
         }
 
-        // ניווט לקבוצות
+        // Navigate to teams
         if (teamsCard != null) {
             teamsCard.setOnClickListener(v -> {
                 try {
@@ -79,7 +80,7 @@ public class HomeFragment extends Fragment {
             });
         }
 
-        // ניווט ללוח אימונים
+        // Navigate to the training schedule
         scheduleCard.setOnClickListener(v -> {
             try {
                 Navigation.findNavController(view).navigate(R.id.action_home_to_schedule);
@@ -88,7 +89,18 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        // ניווט לתצוגת כל המגרשים
+        // Navigate to smart schedule
+        if (scheduleGridCard != null) {
+            scheduleGridCard.setOnClickListener(v -> {
+                try {
+                    Navigation.findNavController(view).navigate(R.id.action_home_to_scheduleGrid);
+                } catch (Exception e) {
+                    Toast.makeText(requireContext(), "שגיאה בניווט: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        // Navigate to all-courts view
         allCourtsCard.setOnClickListener(v -> {
             try {
                 Navigation.findNavController(view).navigate(R.id.action_home_to_allCourtsView);
@@ -97,7 +109,7 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        // ניווט לניהול משתמשים
+        // Navigate to user management
         if (manageUsersCard != null) {
             manageUsersCard.setOnClickListener(v -> {
                 try {
@@ -108,7 +120,7 @@ public class HomeFragment extends Fragment {
             });
         }
 
-        // ניווט לפרטי שחקן
+        // Navigate to player details
         if (playerDetailsCard != null) {
             playerDetailsCard.setOnClickListener(v -> {
                 try {
@@ -124,7 +136,7 @@ public class HomeFragment extends Fragment {
     private void loadCurrentUserAndCheckPermissions() {
         FirebaseAuth auth = FirebaseAuth.getInstance();
         if (auth.getCurrentUser() == null) {
-            // אם אין משתמש מחובר, חזרה למסך התחברות
+                // If no user is signed in, return to login
             Intent intent = new Intent(requireActivity(), LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
@@ -140,25 +152,29 @@ public class HomeFragment extends Fragment {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 currentUser = snapshot.getValue(User.class);
                 if (currentUser != null) {
-                    // עדכון כותרת עם תפקיד משתמש
+                        // Update toolbar with the user role
                     updateToolbarWithRole(currentUser);
 
-                    // הצגת תכונות לפי תפקיד
+                        // Show features based on role
                     if (currentUser.isAdmin()) {
-                        // מנהל רואה הכל
+                            // Admin sees all cards
                         if (manageUsersCard != null) manageUsersCard.setVisibility(View.VISIBLE);
                         if (courtsCard != null) courtsCard.setVisibility(View.VISIBLE);
                         if (teamsCard != null) teamsCard.setVisibility(View.VISIBLE);
+                        if (scheduleGridCard != null) scheduleGridCard.setVisibility(View.VISIBLE);
                     } else if (currentUser.isCoordinator()) {
-                        // רכז רואה ניהול מגרשים וקבוצות
+                            // Coordinator sees courts, teams, and smart schedule
                         if (courtsCard != null) courtsCard.setVisibility(View.VISIBLE);
                         if (teamsCard != null) teamsCard.setVisibility(View.VISIBLE);
+                        if (scheduleGridCard != null) scheduleGridCard.setVisibility(View.VISIBLE);
                     } else if (currentUser.isCoach()) {
-                        // מאמן רואה את הקבוצות שלו
+                            // Coach sees their teams and smart schedule (view only)
                         if (teamsCard != null) teamsCard.setVisibility(View.VISIBLE);
+                        if (scheduleGridCard != null) scheduleGridCard.setVisibility(View.VISIBLE);
                     } else if (currentUser.isPlayer()) {
-                        // שחקן רואה את פרטי השחקן
+                            // Player sees player details and smart schedule (view only)
                         if (playerDetailsCard != null) playerDetailsCard.setVisibility(View.VISIBLE);
+                        if (scheduleGridCard != null) scheduleGridCard.setVisibility(View.VISIBLE);
                     }
                 }
             }

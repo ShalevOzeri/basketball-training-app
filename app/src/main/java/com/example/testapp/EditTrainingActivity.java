@@ -149,6 +149,7 @@ public class EditTrainingActivity extends AppCompatActivity {
         SimpleDateFormat dateFmt = new SimpleDateFormat("dd/MM/yyyy", hebrewLocale);
         editDate.setText(dateFmt.format(selectedDate.getTime()));
 
+        // Allow both tapping to open the dialog and manual typing
         editDate.setOnClickListener(v -> {
             DatePickerDialog dialog = new DatePickerDialog(this, android.R.style.Theme_Material_Light_Dialog_Alert, (DatePicker view, int year, int month, int dayOfMonth) -> {
                 selectedDate.set(Calendar.YEAR, year);
@@ -158,20 +159,143 @@ public class EditTrainingActivity extends AppCompatActivity {
             }, selectedDate.get(Calendar.YEAR), selectedDate.get(Calendar.MONTH), selectedDate.get(Calendar.DAY_OF_MONTH));
             dialog.show();
         });
+        
+        // Update the date when typing manually and leaving the field
+        editDate.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                String dateText = editDate.getText().toString();
+                try {
+                    Calendar cal = Calendar.getInstance();
+                    cal.setTime(dateFmt.parse(dateText));
+                    selectedDate.set(Calendar.YEAR, cal.get(Calendar.YEAR));
+                    selectedDate.set(Calendar.MONTH, cal.get(Calendar.MONTH));
+                    selectedDate.set(Calendar.DAY_OF_MONTH, cal.get(Calendar.DAY_OF_MONTH));
+                } catch (Exception e) {
+                    // If the format is invalid, revert to the saved date
+                    editDate.setText(dateFmt.format(selectedDate.getTime()));
+                }
+            }
+        });
 
+        // Allow both tapping to open the dialog and manual typing
         editStartTime.setOnClickListener(v -> showTimePicker(editStartTime));
         editEndTime.setOnClickListener(v -> showTimePicker(editEndTime));
+        
+        // Normalize the start time when leaving the field
+        editStartTime.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                String timeText = editStartTime.getText().toString().trim();
+                String formatted = formatTimeInput(timeText);
+                if (formatted != null) {
+                    editStartTime.setText(formatted);
+                }
+            }
+        });
+        
+        // Normalize the end time when leaving the field
+        editEndTime.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                String timeText = editEndTime.getText().toString().trim();
+                String formatted = formatTimeInput(timeText);
+                if (formatted != null) {
+                    editEndTime.setText(formatted);
+                }
+            }
+        });
+    }
+    
+    /**
+     * Formats a time input into HH:mm.
+     * Supports inputs like: "9" -> "09:00", "15" -> "15:00", "9:30" -> "09:30", "930" -> "09:30".
+     */
+    private String formatTimeInput(String input) {
+        if (input == null || input.isEmpty()) {
+            return null;
+        }
+        
+        // Already in HH:mm format
+        if (input.matches("\\d{2}:\\d{2}")) {
+            return input;
+        }
+        
+        // Digits only, without a colon
+        if (input.matches("\\d+")) {
+            int num = Integer.parseInt(input);
+            
+            // Single number (0-23) treated as hour
+            if (num >= 0 && num <= 23) {
+                return String.format(Locale.getDefault(), "%02d:00", num);
+            }
+            
+            // Three to four digits (e.g., 930 or 1530)
+            if (input.length() == 3 || input.length() == 4) {
+                int hours = num / 100;
+                int minutes = num % 100;
+                if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+                    return String.format(Locale.getDefault(), "%02d:%02d", hours, minutes);
+                }
+            }
+        }
+        
+        // Pattern H:mm (e.g., 9:30)
+        if (input.matches("\\d{1}:\\d{2}")) {
+            String[] parts = input.split(":");
+            int hours = Integer.parseInt(parts[0]);
+            int minutes = Integer.parseInt(parts[1]);
+            if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+                return String.format(Locale.getDefault(), "%02d:%02d", hours, minutes);
+            }
+        }
+        
+        // Pattern HH:m (e.g., 09:5)
+        if (input.matches("\\d{2}:\\d{1}")) {
+            String[] parts = input.split(":");
+            int hours = Integer.parseInt(parts[0]);
+            int minutes = Integer.parseInt(parts[1]);
+            if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+                return String.format(Locale.getDefault(), "%02d:%02d", hours, minutes);
+            }
+        }
+        
+        // Otherwise, leave the input unchanged
+        return input;
     }
 
     private void showTimePicker(EditText target) {
         Calendar now = Calendar.getInstance();
-        TimePickerDialog dialog = new TimePickerDialog(this, TimePickerDialog.THEME_HOLO_LIGHT, (TimePicker view, int hourOfDay, int minute) -> {
-            target.setText(String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute));
-        }, now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), true);
-        dialog.show();
+        
+        // Build a spinner-style TimePicker via ContextThemeWrapper
+        // Force spinner look using Theme.Holo.Light.Dialog
+        android.view.ContextThemeWrapper themedContext = new android.view.ContextThemeWrapper(
+            this, android.R.style.Theme_Holo_Light_Dialog);
+        final TimePicker timePicker = new TimePicker(themedContext);
+        
+        timePicker.setIs24HourView(true);
+        timePicker.setHour(now.get(Calendar.HOUR_OF_DAY));
+        timePicker.setMinute(now.get(Calendar.MINUTE));
+        
+        // Create dialog
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("בחר שעה")
+            .setView(timePicker)
+            .setPositiveButton("שמור", (dialog, which) -> {
+                // Force focus clear so typed values apply
+                timePicker.clearFocus();
+                
+                int hour = timePicker.getHour();
+                int minute = timePicker.getMinute();
+                target.setText(String.format(Locale.getDefault(), "%02d:%02d", hour, minute));
+            })
+            .setNegativeButton("ביטול", null)
+            .show();
     }
 
     private void populateFields() {
+        // Update the date field
+        Locale hebrewLocale = new Locale("he", "IL");
+        SimpleDateFormat dateFmt = new SimpleDateFormat("dd/MM/yyyy", hebrewLocale);
+        editDate.setText(dateFmt.format(selectedDate.getTime()));
+        
         editStartTime.setText(originalTraining.getStartTime());
         editEndTime.setText(originalTraining.getEndTime());
         editNotes.setText(originalTraining.getNotes());

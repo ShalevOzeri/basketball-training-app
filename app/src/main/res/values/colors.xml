@@ -9,4 +9,8 @@
     <color name="teal_700">#FF018786</color>
     <color name="grey">#808080</color>
     <color name="status_bar_grey">#FF616161</color>
+    
+    <!-- Additional UI colors -->
+    <color name="primary">#FF6200EE</color>
+    <color name="gray_300">#E0E0E0</color>
 </resources>

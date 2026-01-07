@@ -281,76 +281,64 @@ public class AddPlayersActivity extends AppCompatActivity {
     }
     
     private void checkJerseyNumberAvailabilityBeforeAdding(String jerseyNumber, String userId, User player, SimpleCallback onSuccess, SimpleCallback onError) {
-        // First, get all players with this jersey number
+        // Check if this jersey number is already taken in this team by another player
         DatabaseReference playersRef = FirebaseDatabase.getInstance().getReference("players");
         playersRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
-                List<Player> playersWithSameNumber = new ArrayList<>();
-                
-                if (snapshot.exists()) {
-                    for (DataSnapshot playerSnapshot : snapshot.getChildren()) {
-                        Player existingPlayer = playerSnapshot.getValue(Player.class);
-                        
-                        // Collect all players with the same jersey number (except current user)
-                        if (existingPlayer != null && 
-                            jerseyNumber.equals(existingPlayer.getJerseyNumber()) &&
-                            !userId.equals(existingPlayer.getUserId())) {
-                            playersWithSameNumber.add(existingPlayer);
-                        }
-                    }
-                }
-                
-                // Now check if any of these players are in the current team
-                if (playersWithSameNumber.isEmpty()) {
-                    // No one else has this jersey number, proceed with adding
-                    proceedWithAddingPlayerToTeam(player, onSuccess, onError);
-                } else {
-                    // Check each player to see if they're in the team
-                    final int[] checkCount = {0};
-                    final boolean[] foundDuplicate = {false};
+                // Iterate over every player in the system
+                for (DataSnapshot playerSnapshot : snapshot.getChildren()) {
+                    Player existingPlayer = playerSnapshot.getValue(Player.class);
                     
-                    for (Player otherPlayer : playersWithSameNumber) {
-                        String otherUserId = otherPlayer.getUserId();
-                        if (otherUserId != null && !otherUserId.isEmpty()) {
-                            usersRef.child(otherUserId).addListenerForSingleValueEvent(new ValueEventListener() {
-                                @Override
-                                public void onDataChange(DataSnapshot userSnapshot) {
-                                    checkCount[0]++;
-                                    
-                                    if (!foundDuplicate[0]) {
-                                        User otherUser = userSnapshot.getValue(User.class);
-                                        if (otherUser != null && otherUser.getTeamIds() != null && 
-                                            otherUser.getTeamIds().contains(teamId)) {
-                                            // Found a duplicate in the same team!
-                                            foundDuplicate[0] = true;
-                                            Toast.makeText(AddPlayersActivity.this, "קיים שחקן אחר בקבוצה עם מספר גופיה זה - השחקן יתווסף ללא מספר גופיה", Toast.LENGTH_LONG).show();
-                                            // Clear the jersey number and proceed with adding
+                    // Skip the current player
+                    if (existingPlayer == null || userId.equals(existingPlayer.getUserId())) {
+                        continue;
+                    }
+                    
+                    // Check if the other player has the same jersey number
+                    if (!jerseyNumber.equals(existingPlayer.getJerseyNumber())) {
+                        continue;
+                    }
+                    
+                    // Found another player with the same jersey number - check if they are on this team
+                    String otherUserId = existingPlayer.getUserId();
+                    if (otherUserId == null) continue;
+                    
+                    // Check the other player's teams
+                    usersRef.child(otherUserId).child("teamIds")
+                        .addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(DataSnapshot teamIdsSnapshot) {
+                                if (teamIdsSnapshot.exists()) {
+                                    for (DataSnapshot teamSnapshot : teamIdsSnapshot.getChildren()) {
+                                        String otherPlayerTeamId = teamSnapshot.getValue(String.class);
+                                        
+                                        // If the other player is on the same team, it's a conflict
+                                        if (teamId.equals(otherPlayerTeamId)) {
+                                            Toast.makeText(AddPlayersActivity.this, 
+                                                "קיים שחקן אחר בקבוצה עם מספר גופיה זה - השחקן יתווסף ללא מספר גופיה", 
+                                                Toast.LENGTH_LONG).show();
                                             clearPlayerJerseyNumber(userId);
                                             proceedWithAddingPlayerToTeam(player, onSuccess, onError);
                                             return;
                                         }
                                     }
-                                    
-                                    // If all checks are done and no duplicate found, proceed
-                                    if (checkCount[0] == playersWithSameNumber.size() && !foundDuplicate[0]) {
-                                        proceedWithAddingPlayerToTeam(player, onSuccess, onError);
-                                    }
                                 }
-                                
-                                @Override
-                                public void onCancelled(DatabaseError error) {
-                                    checkCount[0]++;
-                                    if (checkCount[0] == playersWithSameNumber.size() && !foundDuplicate[0]) {
-                                        proceedWithAddingPlayerToTeam(player, onSuccess, onError);
-                                    }
-                                }
-                            });
-                        } else {
-                            checkCount[0]++;
-                        }
-                    }
+                                // No conflict - continue adding
+                                proceedWithAddingPlayerToTeam(player, onSuccess, onError);
+                            }
+                            
+                            @Override
+                            public void onCancelled(DatabaseError error) {
+                                // On error, continue adding
+                                proceedWithAddingPlayerToTeam(player, onSuccess, onError);
+                            }
+                        });
+                    return; // Found a player with the same number - checking their teams
                 }
+                
+                // No other player with this jersey number - continue adding
+                proceedWithAddingPlayerToTeam(player, onSuccess, onError);
             }
             
             @Override

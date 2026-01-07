@@ -153,12 +153,10 @@ public class TrainingViewModel extends ViewModel {
                 }
             }
             
-            // Apply hide past trainings filter
+            // Apply hide past trainings filter using actual end time
             if (hidePastTrainings) {
-                long trainingDate = training.getDate();
                 long currentTimeMillis = System.currentTimeMillis();
-                // Hide trainings that ended before current time
-                if (trainingDate < currentTimeMillis) {
+                if (isTrainingPast(training, currentTimeMillis)) {
                     matches = false;
                 }
             }
@@ -169,6 +167,37 @@ public class TrainingViewModel extends ViewModel {
         }
         
         filteredTrainings.setValue(filtered);
+    }
+
+    private boolean isTrainingPast(Training training, long currentTime) {
+        if (training == null) return false;
+        if (training.getDate() == 0) return false;
+
+        int endMinutes = timeToMinutes(training.getEndTime());
+        if (endMinutes < 0) return false;
+
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(training.getDate());
+        cal.set(Calendar.HOUR_OF_DAY, endMinutes / 60);
+        cal.set(Calendar.MINUTE, endMinutes % 60);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+
+        return cal.getTimeInMillis() < currentTime;
+    }
+
+    private int timeToMinutes(String time) {
+        try {
+            if (time == null || time.isEmpty()) return -1;
+            String[] parts = time.split(":");
+            if (parts.length != 2) return -1;
+            int h = Integer.parseInt(parts[0]);
+            int m = Integer.parseInt(parts[1]);
+            if (h < 0 || h > 23 || m < 0 || m > 59) return -1;
+            return h * 60 + m;
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     public void addTraining(Training training, TrainingRepository.OnConflictCheckListener listener) {

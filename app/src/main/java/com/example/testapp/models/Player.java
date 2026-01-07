@@ -5,14 +5,14 @@ public class Player {
     private String userId; // Link to User
     private String firstName;
     private String lastName;
-    private String grade; // כיתה
-    private String school; // בית ספר
-    private String playerPhone; // טלפון שחקן
-    private String parentPhone; // טלפון הורה
-    private String idNumber; // מספר תז
-    private String birthDate; // תאריך לידה
-    private String shirtSize; // מידת גופיה
-    private String jerseyNumber = ""; // מספר גופיה - מאותחל למחרוזת ריקה כדי שהשדה תמיד יופיע ב-Firebase
+    private String grade; // Grade
+    private String school; // School
+    private String playerPhone; // Player phone
+    private String parentPhone; // Parent phone
+    private String idNumber; // ID number
+    private String birthDate; // Birthdate
+    private String shirtSize; // Jersey size
+    private String jerseyNumber = ""; // Jersey number - initialized as empty string so the field always exists in Firebase
     private String teamId;
     private long createdAt;
     private long updatedAt;

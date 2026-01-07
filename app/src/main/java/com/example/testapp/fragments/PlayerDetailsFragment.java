@@ -134,7 +134,7 @@ public class PlayerDetailsFragment extends Fragment {
                     Player player = snapshot.getValue(Player.class);
                     Log.d("PlayerDetails", "Player loaded by ID, jersey: [" + (player != null ? player.getJerseyNumber() : "null") + "]");
                     if (player != null) {
-                        // עדכן את playerId מ-Firebase key
+                        // Update playerId from the Firebase key
                         playerId = snapshot.getKey();
                         populatePlayerFields(player);
                     }
@@ -177,7 +177,7 @@ public class PlayerDetailsFragment extends Fragment {
                                 Player player = child.getValue(Player.class);
                                 Log.d("PlayerDetails", "Player loaded by userId, jersey: [" + (player != null ? player.getJerseyNumber() : "null") + "]");
                                 if (player != null) {
-                                    // עדכן את playerId מ-Firebase key
+                                    // Update playerId from the Firebase key
                                     playerId = child.getKey();
                                     populatePlayerFields(player);
                                     break;
@@ -297,7 +297,7 @@ public class PlayerDetailsFragment extends Fragment {
                     final String finalPlayerKey = playerKey;
                     final boolean finalIsNewPlayer = isNewPlayer;
                     
-                    // בדוק זמינות מספר גופיה בכל הקבוצות של השחקן
+                    // Check jersey availability across all of the player's teams
                     if (!TextUtils.isEmpty(jerseyNumber)) {
                         checkJerseyNumberAvailabilityInAllTeams(jerseyNumber, userId, isAvailable -> {
                             if (isAvailable) {
@@ -378,7 +378,7 @@ public class PlayerDetailsFragment extends Fragment {
                         Player player = playerSnapshot.getValue(Player.class);
                         String playerKey = playerSnapshot.getKey();
                         
-                        // בדוק אם מספר הגופיה קיים ושונה מהשחקן הנוכחי
+                        // Check if the jersey number exists and belongs to a different player
                         if (player != null &&
                             jerseyNumber.equals(player.getJerseyNumber()) &&
                             !playerKey.equals(playerId)) {
@@ -398,7 +398,7 @@ public class PlayerDetailsFragment extends Fragment {
     
     private void checkJerseyNumberAvailabilityInAllTeams(String jerseyNumber, String currentUserId,
                                                         OnJerseyCheckListener listener) {
-        // בדוק בכל השחקנים אם המספר תפוס אצל שחקן אחר
+        // Check all players to see if the jersey number is taken by someone else
         playersRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -407,7 +407,7 @@ public class PlayerDetailsFragment extends Fragment {
                     Player player = playerSnapshot.getValue(Player.class);
                     String playerKey = playerSnapshot.getKey();
                     
-                    // בדוק אם מספר הגופיה קיים ושונה מהשחקן הנוכחי
+                    // Check if the jersey number exists and belongs to a different player
                     if (player != null &&
                         jerseyNumber.equals(player.getJerseyNumber()) &&
                         !playerKey.equals(playerId)) {
@@ -430,7 +430,7 @@ public class PlayerDetailsFragment extends Fragment {
         saveButton.setEnabled(true);
         Toast.makeText(requireContext(), "הפרטים עודכנו בהצלחה", Toast.LENGTH_SHORT).show();
         
-        // טען מחדש את הנתונים מ-Firebase כדי לוודא שהכל מעודכן
+        // Reload data from Firebase to make sure everything is up to date
         loadPlayerSpecificData();
     }
 

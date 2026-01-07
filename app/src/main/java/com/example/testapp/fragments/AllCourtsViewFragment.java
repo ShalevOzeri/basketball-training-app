@@ -90,12 +90,36 @@ public class AllCourtsViewFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Initialize SharedPreferences
-        sharedPreferences = requireContext().getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE);
-        
-        initializeViews(view);
-        loadSavedFilters(); // Load saved filters before loading user
-        loadCurrentUser();
+        try {
+            // Initialize SharedPreferences
+            sharedPreferences = requireContext().getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE);
+            
+            initializeViews(view);
+            loadSavedFilters(); // Load saved filters before loading user
+            loadCurrentUser();
+        } catch (Exception e) {
+            android.util.Log.e("AllCourtsViewFragment", "Error in onViewCreated", e);
+            e.printStackTrace();
+            if (getContext() != null) {
+                Toast.makeText(getContext(), "שגיאה בטעינת הדף: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Refresh trainings when returning to this fragment to ensure deleted trainings are removed
+        try {
+            android.util.Log.d("AllCourtsViewFragment", "onResume: Refreshing trainings list");
+            if (trainingViewModel != null && trainings != null) {
+                // Clear current trainings and let the observer refresh them
+                trainings.clear();
+                updateUI();
+            }
+        } catch (Exception e) {
+            android.util.Log.e("AllCourtsViewFragment", "Error in onResume", e);
+        }
     }
 
     private void loadSavedFilters() {
@@ -125,54 +149,78 @@ public class AllCourtsViewFragment extends Fragment {
     }
 
     private void loadCurrentUser() {
-        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
-            String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            FirebaseDatabase.getInstance().getReference("users").child(userId)
-                .addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        if (!isAdded() || getContext() == null) {
-                            return; // Fragment not attached, skip update
+        try {
+            if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+                String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                FirebaseDatabase.getInstance().getReference("users").child(userId)
+                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                            try {
+                                if (!isAdded() || getContext() == null) {
+                                    return; // Fragment not attached, skip update
+                                }
+                                
+                                currentUser = snapshot.getValue(User.class);
+                                if (currentUser != null && "PLAYER".equals(currentUser.getRole())) {
+                                    isPlayer = true;
+                                    android.util.Log.d("AllCourtsView", "Loaded player. UserId: " + currentUser.getUserId() + ", Teams: " + currentUser.getTeamIds());
+                                }
+                                setupFilters();
+                                setupViewModels();
+                            } catch (Exception e) {
+                                android.util.Log.e("AllCourtsView", "Error in onDataChange", e);
+                                setupFilters();
+                                setupViewModels();
+                            }
                         }
-                        
-                        currentUser = snapshot.getValue(User.class);
-                        if (currentUser != null && "PLAYER".equals(currentUser.getRole())) {
-                            isPlayer = true;
-                            android.util.Log.d("AllCourtsView", "Loaded player. UserId: " + currentUser.getUserId() + ", Teams: " + currentUser.getTeamIds());
-                        }
-                        setupFilters();
-                        setupViewModels();
-                    }
 
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {
-                        setupFilters();
-                        setupViewModels();
-                    }
-                });
-        } else {
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+                            android.util.Log.e("AllCourtsView", "Error loading user", error.toException());
+                            setupFilters();
+                            setupViewModels();
+                        }
+                    });
+            } else {
+                setupFilters();
+                setupViewModels();
+            }
+        } catch (Exception e) {
+            android.util.Log.e("AllCourtsViewFragment", "Error in loadCurrentUser", e);
+            e.printStackTrace();
             setupFilters();
             setupViewModels();
         }
     }
 
     private void initializeViews(View view) {
-        scrollView = view.findViewById(R.id.scrollView);
-        courtsContainer = view.findViewById(R.id.courtsContainer);
-        searchViewCourts = view.findViewById(R.id.searchViewCourts);
-        searchViewTeams = view.findViewById(R.id.searchViewTeams);
-        chipGroupCourts = view.findViewById(R.id.chipGroupCourts);
-        chipGroupDays = view.findViewById(R.id.chipGroupDays);
-        chipGroupTeams = view.findViewById(R.id.chipGroupTeams);
-        filterHeader = view.findViewById(R.id.filterHeader);
-        filtersScrollView = view.findViewById(R.id.filtersScrollView);
-        expandCollapseIcon = view.findViewById(R.id.expandCollapseIcon);
-        btnSelectAllCourts = view.findViewById(R.id.btnSelectAllCourts);
-        btnSelectAllDays = view.findViewById(R.id.btnSelectAllDays);
-        btnSelectAllTeams = view.findViewById(R.id.btnSelectAllTeams);
+        try {
+            scrollView = view.findViewById(R.id.scrollView);
+            courtsContainer = view.findViewById(R.id.courtsContainer);
+            searchViewCourts = view.findViewById(R.id.searchViewCourts);
+            searchViewTeams = view.findViewById(R.id.searchViewTeams);
+            chipGroupCourts = view.findViewById(R.id.chipGroupCourts);
+            chipGroupDays = view.findViewById(R.id.chipGroupDays);
+            chipGroupTeams = view.findViewById(R.id.chipGroupTeams);
+            filterHeader = view.findViewById(R.id.filterHeader);
+            filtersScrollView = view.findViewById(R.id.filtersScrollView);
+            expandCollapseIcon = view.findViewById(R.id.expandCollapseIcon);
+            btnSelectAllCourts = view.findViewById(R.id.btnSelectAllCourts);
+            btnSelectAllDays = view.findViewById(R.id.btnSelectAllDays);
+            btnSelectAllTeams = view.findViewById(R.id.btnSelectAllTeams);
 
-        setupExpandCollapse();
-        setupSelectAllButtons();
+            android.util.Log.d("AllCourtsViewFragment", "All views initialized");
+
+            setupExpandCollapse();
+            setupSelectAllButtons();
+        } catch (Exception e) {
+            android.util.Log.e("AllCourtsViewFragment", "Error initializing views", e);
+            e.printStackTrace();
+            if (getContext() != null) {
+                Toast.makeText(getContext(), "שגיאה בטעינת תצוגות: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     private void setupExpandCollapse() {
@@ -183,14 +231,14 @@ public class AllCourtsViewFragment extends Fragment {
         isFiltersExpanded = !isFiltersExpanded;
 
         if (isFiltersExpanded) {
-            // הרחבה
+            // Expand filters
             filtersScrollView.setVisibility(View.VISIBLE);
             ViewGroup.LayoutParams params = filtersScrollView.getLayoutParams();
             params.height = (int) (getResources().getDisplayMetrics().heightPixels * 0.35);
             filtersScrollView.setLayoutParams(params);
             expandCollapseIcon.setRotation(180);
         } else {
-            // כיווץ
+            // Collapse filters
             filtersScrollView.setVisibility(View.GONE);
             expandCollapseIcon.setRotation(0);
         }
@@ -203,7 +251,7 @@ public class AllCourtsViewFragment extends Fragment {
     }
 
     private void selectAllCourts() {
-        // בדוק אם כל הנראים מסומנים
+        // Check whether all visible courts are selected
         boolean allChecked = true;
         for (int i = 0; i < chipGroupCourts.getChildCount(); i++) {
             View child = chipGroupCourts.getChildAt(i);
@@ -215,7 +263,7 @@ public class AllCourtsViewFragment extends Fragment {
             }
         }
         
-        // אם כל הנראים מסומנים, בטל את הכל. אחרת, סמן את הכל
+        // If all visible are selected, clear them; otherwise select them all
         for (int i = 0; i < chipGroupCourts.getChildCount(); i++) {
             View child = chipGroupCourts.getChildAt(i);
             if (child instanceof Chip && child.getVisibility() == View.VISIBLE) {
@@ -226,7 +274,7 @@ public class AllCourtsViewFragment extends Fragment {
     }
 
     private void selectAllDays() {
-        // בדוק אם כל הימים מסומנים
+        // Check whether all days are selected
         boolean allChecked = true;
         for (int i = 0; i < chipGroupDays.getChildCount(); i++) {
             View child = chipGroupDays.getChildAt(i);
@@ -238,7 +286,7 @@ public class AllCourtsViewFragment extends Fragment {
             }
         }
         
-        // אם כל הימים מסומנים, בטל את הכל. אחרת, סמן את הכל
+        // If all days are selected, clear them; otherwise select them all
         for (int i = 0; i < chipGroupDays.getChildCount(); i++) {
             View child = chipGroupDays.getChildAt(i);
             if (child instanceof Chip) {
@@ -249,7 +297,7 @@ public class AllCourtsViewFragment extends Fragment {
     }
 
     private void selectAllTeams() {
-        // בדוק אם כל הנראים מסומנים
+        // Check whether all visible teams are selected
         boolean allChecked = true;
         for (int i = 0; i < chipGroupTeams.getChildCount(); i++) {
             View child = chipGroupTeams.getChildAt(i);
@@ -261,7 +309,7 @@ public class AllCourtsViewFragment extends Fragment {
             }
         }
         
-        // אם כל הנראים מסומנים, בטל את הכל. אחרת, סמן את הכל
+        // If all visible are selected, clear them; otherwise select them all
         for (int i = 0; i < chipGroupTeams.getChildCount(); i++) {
             View child = chipGroupTeams.getChildAt(i);
             if (child instanceof Chip && child.getVisibility() == View.VISIBLE) {
@@ -307,86 +355,90 @@ public class AllCourtsViewFragment extends Fragment {
     private void setupDayChips() {
         chipGroupDays.removeAllViews();
         
-        // Get current week days
-        Calendar now = Calendar.getInstance();
-        Calendar weekStart = (Calendar) now.clone();
-        weekStart.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
-        
-        String[] days = {"ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"};
-        String[] dayValues = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+        // All days in order - display Monday through Saturday only (not Sunday of next week)
+        String[] days = {"שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"};
+        String[] dayValues = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
-        // Only show chips for current week days
-        for (int i = 0; i < 7; i++) {
-            Calendar dayCheck = (Calendar) weekStart.clone();
-            dayCheck.add(Calendar.DAY_OF_WEEK, i);
-            String dayName = new SimpleDateFormat("EEEE", Locale.ENGLISH).format(dayCheck.getTime());
+        // Add days from Monday to Saturday (6 days only)
+        for (int i = 0; i < 6; i++) {
+            final String dayValue = dayValues[i];
             
-            // Find matching day
-            for (int j = 0; j < dayValues.length; j++) {
-                if (dayValues[j].equals(dayName)) {
-                    Chip chip = new Chip(requireContext());
-                    chip.setText(days[j]);
-                    chip.setCheckable(true);
-                    chip.setCheckedIconVisible(true);
-                    
-                    // בדוק אם יום זה היה שמור קודם לכן, אחרת סמן כברירת מחדל
-                    boolean isChecked = selectedDays.isEmpty() || selectedDays.contains(dayValues[j]);
-                    chip.setChecked(isChecked);
-                    
-                    if (isChecked && selectedDays.isEmpty()) {
-                        selectedDays.add(dayValues[j]);
-                    }
-                    
-                    final String dayValue = dayValues[j];
-                    chip.setOnCheckedChangeListener((buttonView, checked) -> {
-                        if (checked) {
-                            selectedDays.add(dayValue);
-                        } else {
-                            selectedDays.remove(dayValue);
-                        }
-                        saveFilters(); // Save changes
-                        updateUI();
-                    });
-
-                    chipGroupDays.addView(chip);
-                    break;
-                }
+            Chip chip = new Chip(requireContext());
+            chip.setText(days[i]);
+            chip.setCheckable(true);
+            chip.setCheckedIconVisible(true);
+            chip.setTag(dayValue);
+            
+            // If no saved filters, check all by default; otherwise honor saved selections
+            boolean shouldBeChecked = selectedDays.isEmpty() || selectedDays.contains(dayValue);
+            chip.setChecked(shouldBeChecked);
+            if (shouldBeChecked && !selectedDays.contains(dayValue)) {
+                selectedDays.add(dayValue);
             }
+            
+            chip.setOnCheckedChangeListener((buttonView, checked) -> {
+                if (checked) {
+                    selectedDays.add((String) buttonView.getTag());
+                } else {
+                    selectedDays.remove(buttonView.getTag());
+                }
+                saveFilters();
+                updateUI();
+            });
+
+            chipGroupDays.addView(chip);
         }
     }
 
     private void setupViewModels() {
-        courtViewModel = new ViewModelProvider(this).get(CourtViewModel.class);
-        trainingViewModel = new ViewModelProvider(this).get(TrainingViewModel.class);
+        try {
+            courtViewModel = new ViewModelProvider(this).get(CourtViewModel.class);
+            trainingViewModel = new ViewModelProvider(this).get(TrainingViewModel.class);
 
-        courtViewModel.getCourts().observe(getViewLifecycleOwner(), courtsList -> {
-            courts = courtsList;
-            setupCourtChips();
-            updateUI();
-        });
+            courtViewModel.getCourts().observe(getViewLifecycleOwner(), courtsList -> {
+                try {
+                    courts = courtsList;
+                    setupCourtChips();
+                    updateUI();
+                } catch (Exception e) {
+                    android.util.Log.e("AllCourtsView", "Error in courts observer", e);
+                }
+            });
 
-        // Use getTrainings() instead of getFilteredTrainings() to show all trainings including past ones
-        trainingViewModel.getTrainings().observe(getViewLifecycleOwner(), trainingsList -> {
-            trainings = trainingsList != null ? trainingsList : new ArrayList<>();
-            updateUI();
-        });
+            // Use getTrainings() instead of getFilteredTrainings() to show all trainings including past ones
+            trainingViewModel.getTrainings().observe(getViewLifecycleOwner(), trainingsList -> {
+                try {
+                    // Filter out deleted trainings (those without valid trainingId)
+                    List<Training> validTrainings = new ArrayList<>();
+                    if (trainingsList != null) {
+                        for (Training training : trainingsList) {
+                            // Only include trainings with valid ID and court info
+                            if (training.getTrainingId() != null && !training.getTrainingId().isEmpty() &&
+                                training.getCourtId() != null && !training.getCourtId().isEmpty()) {
+                                validTrainings.add(training);
+                            }
+                        }
+                    }
+                    trainings = validTrainings;
+                    updateUI();
+                } catch (Exception e) {
+                    android.util.Log.e("AllCourtsView", "Error in trainings observer", e);
+                }
+            });
 
-        loadTeams();
+            loadTeams();
+        } catch (Exception e) {
+            android.util.Log.e("AllCourtsViewFragment", "Error in setupViewModels", e);
+            e.printStackTrace();
+        }
     }
 
     private void setupCourtChips() {
-        // Save previously selected courts before clearing
-        Set<String> previouslySelectedCourts = new HashSet<>(selectedCourtIds);
-        
         chipGroupCourts.removeAllViews();
-        selectedCourtIds.clear();
+        // Do not clear selectedCourtIds to preserve filter state
 
         for (Court court : courts) {
             addCourtChip(court);
-            // Restore previously selected court
-            if (previouslySelectedCourts.contains(court.getCourtId())) {
-                selectedCourtIds.add(court.getCourtId());
-            }
         }
     }
 
@@ -395,7 +447,11 @@ public class AllCourtsViewFragment extends Fragment {
         chip.setText(court.getName());
         chip.setCheckable(true);
         chip.setCheckedIconVisible(true);
-        chip.setChecked(selectedCourtIds.isEmpty() || selectedCourtIds.contains(court.getCourtId())); // Check if previously selected
+        
+        // Only pre-select if this court was stored in preferences
+        boolean shouldBeChecked = selectedCourtIds.contains(court.getCourtId());
+        chip.setChecked(shouldBeChecked);
+        
         chip.setTag(court);
 
         chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -404,7 +460,7 @@ public class AllCourtsViewFragment extends Fragment {
             } else {
                 selectedCourtIds.remove(court.getCourtId());
             }
-            saveFilters(); // Save changes
+            saveFilters();
             updateUI();
         });
 
@@ -435,35 +491,24 @@ public class AllCourtsViewFragment extends Fragment {
                         return; // Fragment not attached, skip update
                     }
                     
-                    // Save previously selected teams before clearing
-                    Set<String> previouslySelectedTeams = new HashSet<>(selectedTeamIds);
-                    
                     allTeams.clear();
                     chipGroupTeams.removeAllViews();
-                    selectedTeamIds.clear();
+                    // Do not clear selectedTeamIds to preserve filter state
 
                     for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
                         Team team = snapshot.getValue(Team.class);
                         if (team != null) {
                             allTeams.add(team);
                             
-                            // לשחקן - הוסף רק את הקבוצות שלו
+                            // For players, include only their teams
                             if (isPlayer) {
                                 if (currentUser.getTeamIds() != null && 
                                     currentUser.getTeamIds().contains(team.getTeamId())) {
                                     addTeamChip(team);
-                                    // Restore previously selected team
-                                    if (previouslySelectedTeams.contains(team.getTeamId())) {
-                                        selectedTeamIds.add(team.getTeamId());
-                                    }
                                 }
                             } else {
-                                // לא שחקן - הוסף הכל
+                                // For non-players, include every team
                                 addTeamChip(team);
-                                // Restore previously selected team
-                                if (previouslySelectedTeams.contains(team.getTeamId())) {
-                                    selectedTeamIds.add(team.getTeamId());
-                                }
                             }
                         }
                     }
@@ -485,7 +530,11 @@ public class AllCourtsViewFragment extends Fragment {
         chip.setText(team.getName());
         chip.setCheckable(true);
         chip.setCheckedIconVisible(true);
-        chip.setChecked(selectedTeamIds.isEmpty() || selectedTeamIds.contains(team.getTeamId())); // Check if previously selected
+        
+        // Only pre-select if this team was stored in preferences
+        boolean shouldBeChecked = selectedTeamIds.contains(team.getTeamId());
+        chip.setChecked(shouldBeChecked);
+        
         chip.setTag(team);
 
         chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -494,7 +543,7 @@ public class AllCourtsViewFragment extends Fragment {
             } else {
                 selectedTeamIds.remove(team.getTeamId());
             }
-            saveFilters(); // Save changes
+            saveFilters();
             updateUI();
         });
         
@@ -530,7 +579,7 @@ public class AllCourtsViewFragment extends Fragment {
             return;
         }
 
-        // Get current week bounds for filtering
+        // Get current week bounds for filtering (only if showOnlyThisWeek is true)
         Calendar now = Calendar.getInstance();
         Calendar weekStart = (Calendar) now.clone();
         weekStart.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
@@ -539,7 +588,7 @@ public class AllCourtsViewFragment extends Fragment {
         weekStart.set(Calendar.SECOND, 0);
         
         Calendar weekEnd = (Calendar) weekStart.clone();
-        weekEnd.add(Calendar.DAY_OF_WEEK, 7);
+        weekEnd.add(Calendar.DATE, 7); // Fixed: use DATE instead of DAY_OF_WEEK
         
         long weekStartMillis = weekStart.getTimeInMillis();
         long weekEndMillis = weekEnd.getTimeInMillis();
@@ -587,13 +636,21 @@ public class AllCourtsViewFragment extends Fragment {
 
         int trainingCount = 0;
         for (Training training : trainings) {
-            if (training.getCourtId().equals(court.getCourtId())) {
+            if (training.getCourtId() != null && training.getCourtId().equals(court.getCourtId())) {
                 // Count only trainings in the current week
                 long trainingDate = training.getDate();
                 if (trainingDate >= weekStartMillis && trainingDate < weekEndMillis) {
                     // Also apply day and team filters if set
-                    if (!selectedDays.isEmpty() && !selectedDays.contains(training.getDayOfWeek())) {
-                        continue;
+                    if (!selectedDays.isEmpty()) {
+                        // Compute weekday from the date instead of relying on training.getDayOfWeek()
+                        Calendar cal = Calendar.getInstance();
+                        cal.setTimeInMillis(training.getDate());
+                        int dayOfWeek = cal.get(Calendar.DAY_OF_WEEK);
+                        String[] englishDays = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+                        String dayOfWeekName = englishDays[dayOfWeek - 1];
+                        if (!selectedDays.contains(dayOfWeekName)) {
+                            continue;
+                        }
                     }
                     
                     // For players: Only count trainings from their own teams
@@ -647,7 +704,7 @@ public class AllCourtsViewFragment extends Fragment {
 
         List<Training> courtTrainings = new ArrayList<>();
         for (Training training : trainings) {
-            if (!training.getCourtId().equals(court.getCourtId())) {
+            if (training.getCourtId() == null || !training.getCourtId().equals(court.getCourtId())) {
                 continue;
             }
 
@@ -661,7 +718,13 @@ public class AllCourtsViewFragment extends Fragment {
 
             // Apply day filter (multi-select)
             if (!selectedDays.isEmpty()) {
-                if (!selectedDays.contains(training.getDayOfWeek())) {
+                // Compute weekday from the date instead of relying on training.getDayOfWeek()
+                Calendar cal = Calendar.getInstance();
+                cal.setTimeInMillis(training.getDate());
+                int dayOfWeek = cal.get(Calendar.DAY_OF_WEEK);
+                String[] englishDays = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+                String dayOfWeekName = englishDays[dayOfWeek - 1];
+                if (!selectedDays.contains(dayOfWeekName)) {
                     continue;
                 }
             }
@@ -719,7 +782,11 @@ public class AllCourtsViewFragment extends Fragment {
                 // Get the day of week for this training
                 Calendar cal = Calendar.getInstance();
                 cal.setTimeInMillis(training.getDate());
-                String dayOfWeekName = training.getDayOfWeek(); // Sunday, Monday, etc.
+                // Compute weekday directly from the date instead of relying on training.getDayOfWeek()
+                int dayOfWeek = cal.get(Calendar.DAY_OF_WEEK); // 1=Sunday, 2=Monday, etc.
+                String[] englishDays = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+                String dayOfWeekName = englishDays[dayOfWeek - 1]; // Convert 1-based to 0-based index
+                
                 String dateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH).format(cal.getTime());
                 String currentDateWithDay = dayOfWeekName + " " + dateStr;
                 
@@ -817,10 +884,27 @@ public class AllCourtsViewFragment extends Fragment {
         timeView.setTextSize(13);
         blockLayout.addView(timeView);
 
+        // Try to use team color from training, otherwise search for team in allTeams list
+        String teamColor = training.getTeamColor();
+        if (teamColor == null || teamColor.isEmpty()) {
+            // Look for the team in our teams list and get its color
+            for (Team team : allTeams) {
+                if (team.getTeamId().equals(training.getTeamId())) {
+                    teamColor = team.getColor();
+                    break;
+                }
+            }
+        }
+
+        // Apply color with fallback
         try {
-            blockLayout.setBackgroundColor(Color.parseColor(training.getTeamColor()));
+            if (teamColor != null && !teamColor.isEmpty()) {
+                blockLayout.setBackgroundColor(Color.parseColor(teamColor));
+            } else {
+                blockLayout.setBackgroundColor(Color.parseColor("#3DDC84")); // Default green
+            }
         } catch (Exception e) {
-            blockLayout.setBackgroundColor(Color.parseColor("#3DDC84"));
+            blockLayout.setBackgroundColor(Color.parseColor("#3DDC84")); // Default green
         }
 
         return blockLayout;

@@ -80,6 +80,10 @@ public class ScheduleFragment extends Fragment {
     private SharedPreferences sharedPreferences;
     private static final String PREFS_NAME = "SchedulePreferences";
     private static final String KEY_SORT_TYPE = "sort_type";
+    private static final String KEY_SELECTED_TEAMS = "selected_teams";
+    private static final String KEY_SELECTED_COURTS = "selected_courts";
+    private static final String KEY_SELECTED_DAYS = "selected_days";
+    private static final String KEY_SELECTED_MONTHS = "selected_months";
 
     private List<Team> teamsList = new ArrayList<>();
     private List<Court> courtsList = new ArrayList<>();
@@ -112,6 +116,7 @@ public class ScheduleFragment extends Fragment {
 
         // Initialize SharedPreferences
         sharedPreferences = requireContext().getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE);
+        loadSavedFilters();
         
         initializeViews(view);
         setupRecyclerView();
@@ -188,6 +193,50 @@ public class ScheduleFragment extends Fragment {
         editor.apply();
     }
 
+    private void loadSavedFilters() {
+        // Load saved filter selections from SharedPreferences
+        String savedTeams = sharedPreferences.getString(KEY_SELECTED_TEAMS, "");
+        String savedCourts = sharedPreferences.getString(KEY_SELECTED_COURTS, "");
+        String savedDays = sharedPreferences.getString(KEY_SELECTED_DAYS, "");
+        String savedMonths = sharedPreferences.getString(KEY_SELECTED_MONTHS, "");
+        
+        if (!savedTeams.isEmpty()) {
+            selectedTeamIds = new HashSet<>(java.util.Arrays.asList(savedTeams.split(",")));
+        }
+        if (!savedCourts.isEmpty()) {
+            selectedCourtIds = new HashSet<>(java.util.Arrays.asList(savedCourts.split(",")));
+        }
+        if (!savedDays.isEmpty()) {
+            selectedDays = new HashSet<>(java.util.Arrays.asList(savedDays.split(",")));
+        }
+        if (!savedMonths.isEmpty()) {
+            String[] monthStrings = savedMonths.split(",");
+            for (String monthStr : monthStrings) {
+                try {
+                    selectedMonths.add(Integer.parseInt(monthStr));
+                } catch (NumberFormatException e) {
+                    // Skip invalid entries
+                }
+            }
+        }
+    }
+
+    private void saveFilters() {
+        // Save current filter selections to SharedPreferences
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString(KEY_SELECTED_TEAMS, String.join(",", selectedTeamIds));
+        editor.putString(KEY_SELECTED_COURTS, String.join(",", selectedCourtIds));
+        editor.putString(KEY_SELECTED_DAYS, String.join(",", selectedDays));
+        
+        // Convert Integer set to comma-separated string
+        List<String> monthStrings = new ArrayList<>();
+        for (Integer month : selectedMonths) {
+            monthStrings.add(String.valueOf(month));
+        }
+        editor.putString(KEY_SELECTED_MONTHS, String.join(",", monthStrings));
+        editor.apply();
+    }
+
     private void setupExpandCollapse() {
         filterHeader.setOnClickListener(v -> toggleFilters());
     }
@@ -196,14 +245,14 @@ public class ScheduleFragment extends Fragment {
         isFiltersExpanded = !isFiltersExpanded;
 
         if (isFiltersExpanded) {
-            // הרחבה
+            // Expand filters
             filtersScrollView.setVisibility(View.VISIBLE);
             ViewGroup.LayoutParams params = filtersScrollView.getLayoutParams();
             params.height = (int) (getResources().getDisplayMetrics().heightPixels * 0.35);
             filtersScrollView.setLayoutParams(params);
             expandCollapseIcon.setRotation(180);
         } else {
-            // כיווץ
+            // Collapse filters
             filtersScrollView.setVisibility(View.GONE);
             expandCollapseIcon.setRotation(0);
         }
@@ -217,7 +266,7 @@ public class ScheduleFragment extends Fragment {
     }
 
     private void selectAllTeams() {
-        // בדוק אם כל הנראים מסומנים
+        // Check whether all visible teams are selected
         boolean allChecked = true;
         for (int i = 0; i < chipGroupTeams.getChildCount(); i++) {
             View child = chipGroupTeams.getChildAt(i);
@@ -229,17 +278,18 @@ public class ScheduleFragment extends Fragment {
             }
         }
         
-        // אם כל הנראים מסומנים, בטל את הכל. אחרת, סמן את הכל
+        // If all visible are selected, clear them; otherwise select them all
         for (int i = 0; i < chipGroupTeams.getChildCount(); i++) {
             View child = chipGroupTeams.getChildAt(i);
             if (child instanceof Chip && child.getVisibility() == View.VISIBLE) {
                 ((Chip) child).setChecked(!allChecked);
             }
         }
+        saveFilters();
     }
 
     private void selectAllCourts() {
-        // בדוק אם כל הנראים מסומנים
+        // Check whether all visible courts are selected
         boolean allChecked = true;
         for (int i = 0; i < chipGroupCourts.getChildCount(); i++) {
             View child = chipGroupCourts.getChildAt(i);
@@ -251,17 +301,18 @@ public class ScheduleFragment extends Fragment {
             }
         }
         
-        // אם כל הנראים מסומנים, בטל את הכל. אחרת, סמן את הכל
+        // If all visible are selected, clear them; otherwise select them all
         for (int i = 0; i < chipGroupCourts.getChildCount(); i++) {
             View child = chipGroupCourts.getChildAt(i);
             if (child instanceof Chip && child.getVisibility() == View.VISIBLE) {
                 ((Chip) child).setChecked(!allChecked);
             }
         }
+        saveFilters();
     }
 
     private void selectAllMonths() {
-        // בדוק אם כל החודשים מסומנים
+        // Check whether all months are selected
         boolean allChecked = true;
         for (int i = 0; i < chipGroupMonths.getChildCount(); i++) {
             View child = chipGroupMonths.getChildAt(i);
@@ -273,17 +324,18 @@ public class ScheduleFragment extends Fragment {
             }
         }
         
-        // אם כל החודשים מסומנים, בטל את הכל. אחרת, סמן את הכל
+        // If all months are selected, clear them; otherwise select them all
         for (int i = 0; i < chipGroupMonths.getChildCount(); i++) {
             View child = chipGroupMonths.getChildAt(i);
             if (child instanceof Chip) {
                 ((Chip) child).setChecked(!allChecked);
             }
         }
+        saveFilters();
     }
 
     private void selectAllDays() {
-        // בדוק אם כל הימים מסומנים
+        // Check whether all days are selected
         boolean allChecked = true;
         for (int i = 0; i < chipGroupDays.getChildCount(); i++) {
             View child = chipGroupDays.getChildAt(i);
@@ -295,13 +347,14 @@ public class ScheduleFragment extends Fragment {
             }
         }
         
-        // אם כל הימים מסומנים, בטל את הכל. אחרת, סמן את הכל
+        // If all days are selected, clear them; otherwise select them all
         for (int i = 0; i < chipGroupDays.getChildCount(); i++) {
             View child = chipGroupDays.getChildAt(i);
             if (child instanceof Chip) {
                 ((Chip) child).setChecked(!allChecked);
             }
         }
+        saveFilters();
     }
 
     private void setupRecyclerView() {
@@ -367,52 +420,45 @@ public class ScheduleFragment extends Fragment {
 
     private void setupDayChips() {
         chipGroupDays.removeAllViews();
-        selectedDays.clear();
+        // Do not clear selectedDays because they were loaded from SharedPreferences
         
-        // Get current week days
-        Calendar now = Calendar.getInstance();
-        Calendar weekStart = (Calendar) now.clone();
-        weekStart.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
-        
+        // All days in order
         String[] days = {"ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"};
         String[] dayValues = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
-        // Only show chips for current week days
+        // Add all days
         for (int i = 0; i < 7; i++) {
-            Calendar dayCheck = (Calendar) weekStart.clone();
-            dayCheck.add(Calendar.DAY_OF_WEEK, i);
-            String dayName = new SimpleDateFormat("EEEE", Locale.ENGLISH).format(dayCheck.getTime());
+            final String dayValue = dayValues[i];
             
-            // Find matching day
-            for (int j = 0; j < dayValues.length; j++) {
-                if (dayValues[j].equals(dayName)) {
-                    final String dayValue = dayValues[j];
-                    Chip chip = new Chip(requireContext());
-                    chip.setText(days[j]);
-                    chip.setCheckable(true);
-                    chip.setTag(dayValue);
-                    chip.setChecked(true); // סמן הכל כברירת מחדל
-
-                    chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                        if (isChecked) {
-                            selectedDays.add((String) buttonView.getTag());
-                        } else {
-                            selectedDays.remove(buttonView.getTag());
-                        }
-                        updateDayFilter();
-                    });
-
-                    chipGroupDays.addView(chip);
-                    selectedDays.add(dayValue);
-                    break;
-                }
+            Chip chip = new Chip(requireContext());
+            chip.setText(days[i]);
+            chip.setCheckable(true);
+            chip.setTag(dayValue);
+            
+            // Check if the day was selected; if nothing is saved, select all
+            boolean shouldBeChecked = selectedDays.isEmpty() || selectedDays.contains(dayValue);
+            chip.setChecked(shouldBeChecked);
+            if (shouldBeChecked && !selectedDays.contains(dayValue)) {
+                selectedDays.add(dayValue);
             }
+
+            chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) {
+                    selectedDays.add((String) buttonView.getTag());
+                } else {
+                    selectedDays.remove(buttonView.getTag());
+                }
+                saveFilters();
+                updateDayFilter();
+            });
+
+            chipGroupDays.addView(chip);
         }
     }
 
     private void setupMonthChips() {
         String[] months = {"ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", 
-                          "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"};
+                  "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"};
 
         for (int i = 0; i < months.length; i++) {
             String month = months[i];
@@ -422,6 +468,9 @@ public class ScheduleFragment extends Fragment {
             chip.setText(month);
             chip.setCheckable(true);
             chip.setTag(monthValue);
+            
+            // Mark if the month was previously selected
+            chip.setChecked(selectedMonths.contains(monthValue));
 
             chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 if (isChecked) {
@@ -429,6 +478,7 @@ public class ScheduleFragment extends Fragment {
                 } else {
                     selectedMonths.remove(buttonView.getTag());
                 }
+                saveFilters();
                 updateMonthFilter();
             });
 
@@ -448,25 +498,24 @@ public class ScheduleFragment extends Fragment {
                     
                     teamsList.clear();
                     chipGroupTeams.removeAllViews();
-                    selectedTeamIds.clear();
+                    // Do not clear selectedTeamIds because they were loaded from SharedPreferences
 
                     for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
                         Team team = snapshot.getValue(Team.class);
                         if (team != null) {
                             teamsList.add(team);
                             
-                            // לשחקן - הוסף רק את הקבוצות שלו
+                            // For players, include only their teams
                             if (isPlayer) {
                                 if (currentUser != null && currentUser.getTeamIds() != null && 
                                     currentUser.getTeamIds().contains(team.getTeamId())) {
                                     addTeamChip(team);
-                                    selectedTeamIds.add(team.getTeamId());
                                 }
                             } else if (!isPlayer) {
-                                // לא שחקן - הוסף הכל
+                                // For non-players, include every team
                                 addTeamChip(team);
                             }
-                            // אם isPlayer הוא false ו-currentUser עדיין null, אל תוסיף כלום
+                            // If isPlayer is false and currentUser is still null, do not add anything yet
                         }
                     }
                     
@@ -500,6 +549,9 @@ public class ScheduleFragment extends Fragment {
         chip.setText(team.getName());
         chip.setCheckable(true);
         chip.setTag(team);
+        
+        // Check whether the team was selected
+        chip.setChecked(selectedTeamIds.contains(team.getTeamId()));
 
         chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
             Team selectedTeam = (Team) buttonView.getTag();
@@ -508,6 +560,7 @@ public class ScheduleFragment extends Fragment {
             } else {
                 selectedTeamIds.remove(selectedTeam.getTeamId());
             }
+            saveFilters();
             updateTeamFilter();
         });
 
@@ -519,6 +572,9 @@ public class ScheduleFragment extends Fragment {
         chip.setText(court.getName());
         chip.setCheckable(true);
         chip.setTag(court);
+        
+        // Check whether the court was selected
+        chip.setChecked(selectedCourtIds.contains(court.getCourtId()));
 
         chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
             Court selectedCourt = (Court) buttonView.getTag();
@@ -527,6 +583,7 @@ public class ScheduleFragment extends Fragment {
             } else {
                 selectedCourtIds.remove(selectedCourt.getCourtId());
             }
+            saveFilters();
             updateCourtFilter();
         });
 
@@ -604,6 +661,9 @@ public class ScheduleFragment extends Fragment {
                 } else {
                     adapter.setTrainings(trainings);
                 }
+                
+                // Apply saved sort preference
+                applyFiltersAndSort();
             }
         });
 
@@ -817,8 +877,16 @@ public class ScheduleFragment extends Fragment {
                 break;
             case BY_TIME:
             default:
-                // Sort by start time (HH:mm format) - this is now the default
-                currentTrainings.sort((t1, t2) -> t1.getStartTime().compareTo(t2.getStartTime()));
+                // Sort by date first, then by start time
+                currentTrainings.sort((t1, t2) -> {
+                    // First compare by date
+                    int dateCompare = Long.compare(t1.getDate(), t2.getDate());
+                    if (dateCompare != 0) {
+                        return dateCompare;
+                    }
+                    // If same date, compare by start time
+                    return t1.getStartTime().compareTo(t2.getStartTime());
+                });
                 break;
         }
 

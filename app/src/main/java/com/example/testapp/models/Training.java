@@ -9,7 +9,7 @@ public class Training implements Serializable {
     private String teamColor;
     private String courtId;
     private String courtName;
-    private String courtType; // "אולם" or "מגרש מוצל"
+    private String courtType; // "Indoor hall" or "Shaded court"
     private String dayOfWeek; // "Sunday", "Monday", etc.
     private String startTime; // "16:00"
     private String endTime; // "18:00"
@@ -85,10 +85,19 @@ public class Training implements Serializable {
 
         // If any times are invalid, skip conflict to avoid false positives from bad data
         if (thisStart < 0 || thisEnd < 0 || otherStart < 0 || otherEnd < 0) {
+            android.util.Log.w("Training", "Invalid times in conflict check: thisStart=" + thisStart + ", thisEnd=" + thisEnd + 
+                ", otherStart=" + otherStart + ", otherEnd=" + otherEnd);
             return false;
         }
 
-        return !(thisEnd <= otherStart || thisStart >= otherEnd);
+        boolean hasConflict = !(thisEnd <= otherStart || thisStart >= otherEnd);
+        
+        if (hasConflict) {
+            android.util.Log.d("Training", "CONFLICT DETECTED: " + this.teamName + " (" + this.startTime + "-" + this.endTime + ") vs " + 
+                other.teamName + " (" + other.startTime + "-" + other.endTime + ")");
+        }
+        
+        return hasConflict;
     }
 
     private boolean isSameDay(long first, long second) {

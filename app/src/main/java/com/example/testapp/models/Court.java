@@ -9,7 +9,7 @@ public class Court {
     private String courtId;
     private String name;
     private String location;
-    private String courtType; // "אולם" or "מגרש מוצל"
+    private String courtType; // "Indoor hall" or "Shaded court"
     private boolean isAvailable;
     
     // Weekly schedule stored as separate fields to avoid Firebase serialization issues

@@ -24,6 +24,7 @@ public class TeamRepository {
         teamsRef = database.getReference("teams");
         teamsLiveData = new MutableLiveData<>();
         errorLiveData = new MutableLiveData<>();
+        loadTeams(); // Load teams on initialization
     }
 
     public void setCoachFilter(String coachId) {

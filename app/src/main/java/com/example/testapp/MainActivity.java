@@ -52,13 +52,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupNavigation() {
         try {
-            // קבלת NavController מה-NavHostFragment
+            // Retrieve NavController from the NavHostFragment
             navController = Navigation.findNavController(this, R.id.nav_host_fragment);
             
-            // הגדרת AppBarConfiguration - homeFragment הוא המסך הראשי
+            // Configure AppBarConfiguration - homeFragment is the root destination
             appBarConfiguration = new AppBarConfiguration.Builder(R.id.homeFragment).build();
             
-            // חיבור הטולבר לניווט
+            // Connect the toolbar to navigation
             NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
         } catch (Exception e) {
             Toast.makeText(this, "שגיאה בטעינת ניווט: " + e.getMessage(), Toast.LENGTH_LONG).show();
@@ -69,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onSupportNavigateUp() {
-        // טיפול בלחיצה על חץ החזרה בטולבר
+        // Handle toolbar back arrow presses
         if (navController != null) {
             return NavigationUI.navigateUp(navController, appBarConfiguration)
                     || super.onSupportNavigateUp();
