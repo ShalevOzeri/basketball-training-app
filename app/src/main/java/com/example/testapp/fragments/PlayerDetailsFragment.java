@@ -2,12 +2,12 @@ package com.example.testapp.fragments;
 
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
@@ -15,6 +15,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import com.example.testapp.R;
@@ -29,7 +30,10 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class PlayerDetailsFragment extends Fragment {
@@ -67,6 +71,36 @@ public class PlayerDetailsFragment extends Fragment {
         loadInitialData();
 
         saveButton.setOnClickListener(v -> savePlayerDetails());
+        birthDateEditText.setOnClickListener(v -> showCustomDatePicker());
+    }
+
+    private void showCustomDatePicker() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        LayoutInflater inflater = requireActivity().getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_custom_datepicker, null);
+
+        DatePicker datePicker = dialogView.findViewById(R.id.datePicker);
+        Button btnSave = dialogView.findViewById(R.id.btnSave);
+        Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
+
+        btnSave.setOnClickListener(v -> {
+            int day = datePicker.getDayOfMonth();
+            int month = datePicker.getMonth();
+            int year = datePicker.getYear();
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(year, month, day);
+
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+            birthDateEditText.setText(sdf.format(calendar.getTime()));
+            dialog.dismiss();
+        });
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
     }
 
     private void initializeViews(View view) {
@@ -82,8 +116,6 @@ public class PlayerDetailsFragment extends Fragment {
         shirtSizeSpinner = view.findViewById(R.id.shirtSizeSpinner);
         saveButton = view.findViewById(R.id.saveButton);
         progressBar = view.findViewById(R.id.progressBar);
-        
-        Log.d("PlayerDetails", "jerseyNumberEditText initialized: " + (jerseyNumberEditText != null ? "yes" : "null"));
     }
 
     private void setupShirtSizeSpinner() {
@@ -124,7 +156,6 @@ public class PlayerDetailsFragment extends Fragment {
     }
     
     private void loadPlayerByPlayerId(String id) {
-        Log.d("PlayerDetails", "🔍 loadPlayerByPlayerId: " + id);
         playersRef.child(id).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -132,20 +163,14 @@ public class PlayerDetailsFragment extends Fragment {
                 saveButton.setEnabled(true);
                 if (snapshot.exists()) {
                     Player player = snapshot.getValue(Player.class);
-                    Log.d("PlayerDetails", "Player loaded by ID, jersey: [" + (player != null ? player.getJerseyNumber() : "null") + "]");
                     if (player != null) {
-                        // Update playerId from the Firebase key
-                        playerId = snapshot.getKey();
                         populatePlayerFields(player);
                     }
-                } else {
-                    Log.d("PlayerDetails", "❌ No player found with ID: " + id);
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Log.e("PlayerDetails", "Error loading by ID: " + error.getMessage());
                 handleSaveError(error.getMessage());
             }
         });
@@ -160,7 +185,6 @@ public class PlayerDetailsFragment extends Fragment {
     }
 
     private void loadPlayerByUserId() {
-        Log.d("PlayerDetails", "🔍 loadPlayerByUserId: " + userId);
         if (userId == null || userId.isEmpty()) {
             progressBar.setVisibility(View.GONE);
             return;
@@ -175,32 +199,22 @@ public class PlayerDetailsFragment extends Fragment {
                         if (snapshot.exists()) {
                             for (DataSnapshot child : snapshot.getChildren()) {
                                 Player player = child.getValue(Player.class);
-                                Log.d("PlayerDetails", "Player loaded by userId, jersey: [" + (player != null ? player.getJerseyNumber() : "null") + "]");
                                 if (player != null) {
-                                    // Update playerId from the Firebase key
-                                    playerId = child.getKey();
                                     populatePlayerFields(player);
                                     break;
                                 }
                             }
-                        } else {
-                            Log.d("PlayerDetails", "❌ No player found for userId: " + userId);
                         }
                     }
 
                     @Override
                     public void onCancelled(@NonNull DatabaseError error) {
-                        Log.e("PlayerDetails", "Error loading by userId: " + error.getMessage());
                        handleSaveError(error.getMessage());
                     }
                 });
     }
 
     private void populatePlayerFields(Player player) {
-        Log.d("PlayerDetails", "=== populatePlayerFields ===");
-        Log.d("PlayerDetails", "Player object: " + (player != null ? "exists" : "null"));
-        Log.d("PlayerDetails", "Jersey Number from Firebase: [" + (player != null ? player.getJerseyNumber() : "null") + "]");
-        
         if (TextUtils.isEmpty(firstNameEditText.getText().toString().trim()) && player.getFirstName() != null) {
             firstNameEditText.setText(player.getFirstName());
         }
@@ -215,10 +229,7 @@ public class PlayerDetailsFragment extends Fragment {
         parentPhoneEditText.setText(player.getParentPhone() != null ? player.getParentPhone() : "");
         idNumberEditText.setText(player.getIdNumber() != null ? player.getIdNumber() : "");
         birthDateEditText.setText(player.getBirthDate() != null ? player.getBirthDate() : "");
-        
-        String jerseyValue = player.getJerseyNumber() != null ? player.getJerseyNumber() : "";
-        jerseyNumberEditText.setText(jerseyValue);
-        Log.d("PlayerDetails", "Setting jersey to UI: [" + jerseyValue + "]");
+        jerseyNumberEditText.setText(player.getJerseyNumber() != null ? player.getJerseyNumber() : "");
 
         for (int i = 0; i < SHIRT_SIZES.length; i++) {
             if (SHIRT_SIZES[i].equals(player.getShirtSize())) {
@@ -240,11 +251,6 @@ public class PlayerDetailsFragment extends Fragment {
         String shirtSize = shirtSizeSpinner.getSelectedItem().toString();
         String jerseyNumber = jerseyNumberEditText.getText().toString().trim();
 
-        Log.d("PlayerDetails", "=== savePlayerDetails ===");
-        Log.d("PlayerDetails", "jerseyNumber from UI: [" + jerseyNumber + "]");
-        Log.d("PlayerDetails", "firstName: " + firstName);
-        Log.d("PlayerDetails", "lastName: " + lastName);
-
         if (TextUtils.isEmpty(firstName) || TextUtils.isEmpty(lastName)) {
             Toast.makeText(requireContext(), "שם פרטי ושם משפחה הם שדות חובה", Toast.LENGTH_SHORT).show();
             return;
@@ -257,16 +263,9 @@ public class PlayerDetailsFragment extends Fragment {
         userUpdates.put("name", firstName + " " + lastName);
         userUpdates.put("phone", playerPhone);
 
-        Log.d("PlayerDetails", "Updating user info...");
         usersRef.child(userId).updateChildren(userUpdates)
-            .addOnSuccessListener(aVoid -> {
-                Log.d("PlayerDetails", "User updated, calling findOrCreatePlayerRecord");
-                findOrCreatePlayerRecord(firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, shirtSize, jerseyNumber);
-            })
-            .addOnFailureListener(e -> {
-                Log.e("PlayerDetails", "User update failed: " + e.getMessage());
-                handleSaveError("שגיאה בעדכון פרטי משתמש: " + e.getMessage());
-            });
+            .addOnSuccessListener(aVoid -> findOrCreatePlayerRecord(firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, shirtSize, jerseyNumber))
+            .addOnFailureListener(e -> handleSaveError("שגיאה בעדכון פרטי משתמש: " + e.getMessage()));
     }
 
     private void findOrCreatePlayerRecord(String firstName, String lastName, String grade, String school,
@@ -296,15 +295,15 @@ public class PlayerDetailsFragment extends Fragment {
 
                     final String finalPlayerKey = playerKey;
                     final boolean finalIsNewPlayer = isNewPlayer;
-                    
-                    // Check jersey availability across all of the player's teams
-                    if (!TextUtils.isEmpty(jerseyNumber)) {
-                        checkJerseyNumberAvailabilityInAllTeams(jerseyNumber, userId, isAvailable -> {
+
+                    String teamId = (existingPlayer != null) ? existingPlayer.getTeamId() : null;
+                    if (!TextUtils.isEmpty(jerseyNumber) && teamId != null) {
+                        checkJerseyNumberAvailability(teamId, jerseyNumber, userId, isAvailable -> {
                             if (isAvailable) {
                                 performPlayerUpdate(finalPlayerKey, finalIsNewPlayer, firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, shirtSize, jerseyNumber);
                             } else {
-                                Toast.makeText(requireContext(), "מספר גופיה " + jerseyNumber + " כבר בשימוש בקבוצה אחרת.", Toast.LENGTH_LONG).show();
-                                performPlayerUpdate(finalPlayerKey, finalIsNewPlayer, firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, shirtSize, "");
+                                Toast.makeText(requireContext(), "מספר גופיה " + jerseyNumber + " כבר תפוס בקבוצה.", Toast.LENGTH_LONG).show();
+                                performPlayerUpdate(finalPlayerKey, finalIsNewPlayer, firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, shirtSize, null);
                             }
                         });
                     } else {
@@ -323,10 +322,6 @@ public class PlayerDetailsFragment extends Fragment {
                                    String grade, String school, String playerPhone, String parentPhone,
                                    String idNumber, String birthDate, String shirtSize, String jerseyNumber) {
 
-        Log.d("PlayerDetails", "=== performPlayerUpdate ===");
-        Log.d("PlayerDetails", "playerKey: " + playerKey);
-        Log.d("PlayerDetails", "jerseyNumber received: [" + jerseyNumber + "]");
-        
         Map<String, Object> playerUpdates = new HashMap<>();
         playerUpdates.put("firstName", firstName);
         playerUpdates.put("lastName", lastName);
@@ -337,13 +332,7 @@ public class PlayerDetailsFragment extends Fragment {
         playerUpdates.put("idNumber", idNumber);
         playerUpdates.put("birthDate", birthDate);
         playerUpdates.put("shirtSize", shirtSize);
-        
-        String finalJerseyNumber = (jerseyNumber != null && !jerseyNumber.trim().isEmpty()) ? jerseyNumber : "";
-        playerUpdates.put("jerseyNumber", finalJerseyNumber);
-        
-        Log.d("PlayerDetails", "jerseyNumber in map: [" + finalJerseyNumber + "]");
-        Log.d("PlayerDetails", "All updates: " + playerUpdates.toString());
-        
+        playerUpdates.put("jerseyNumber", jerseyNumber);
         playerUpdates.put("updatedAt", System.currentTimeMillis());
         playerUpdates.put("userId", userId);
         
@@ -351,20 +340,12 @@ public class PlayerDetailsFragment extends Fragment {
             playerUpdates.put("createdAt", System.currentTimeMillis());
         }
 
-        Log.d("PlayerDetails", "Calling updateChildren on path: players/" + playerKey);
-        
         Task<Void> updatePlayerTask = playersRef.child(playerKey).updateChildren(playerUpdates);
         Task<Void> updateUserPlayerIdTask = usersRef.child(userId).child("playerId").setValue(playerKey);
 
         Tasks.whenAll(updatePlayerTask, updateUserPlayerIdTask)
-            .addOnSuccessListener(aVoid -> {
-                Log.d("PlayerDetails", "✅ Save successful!");
-                handleSaveSuccess();
-            })
-            .addOnFailureListener(e -> {
-                Log.e("PlayerDetails", "❌ Save failed: " + e.getMessage());
-                handleSaveError(e.getMessage());
-            });
+            .addOnSuccessListener(aVoid -> handleSaveSuccess())
+            .addOnFailureListener(e -> handleSaveError(e.getMessage()));
     }
 
     private void checkJerseyNumberAvailability(String teamId, String jerseyNumber, String currentUserId,
@@ -376,12 +357,9 @@ public class PlayerDetailsFragment extends Fragment {
                     boolean isAvailable = true;
                     for (DataSnapshot playerSnapshot : snapshot.getChildren()) {
                         Player player = playerSnapshot.getValue(Player.class);
-                        String playerKey = playerSnapshot.getKey();
-                        
-                        // Check if the jersey number exists and belongs to a different player
                         if (player != null &&
                             jerseyNumber.equals(player.getJerseyNumber()) &&
-                            !playerKey.equals(playerId)) {
+                            !currentUserId.equals(player.getUserId())) {
                             isAvailable = false;
                             break;
                         }
@@ -396,42 +374,10 @@ public class PlayerDetailsFragment extends Fragment {
             });
     }
     
-    private void checkJerseyNumberAvailabilityInAllTeams(String jerseyNumber, String currentUserId,
-                                                        OnJerseyCheckListener listener) {
-        // Check all players to see if the jersey number is taken by someone else
-        playersRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                boolean isAvailable = true;
-                for (DataSnapshot playerSnapshot : snapshot.getChildren()) {
-                    Player player = playerSnapshot.getValue(Player.class);
-                    String playerKey = playerSnapshot.getKey();
-                    
-                    // Check if the jersey number exists and belongs to a different player
-                    if (player != null &&
-                        jerseyNumber.equals(player.getJerseyNumber()) &&
-                        !playerKey.equals(playerId)) {
-                        isAvailable = false;
-                        break;
-                    }
-                }
-                listener.onResult(isAvailable);
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                listener.onResult(true);
-            }
-        });
-    }
-    
     private void handleSaveSuccess() {
         progressBar.setVisibility(View.GONE);
         saveButton.setEnabled(true);
         Toast.makeText(requireContext(), "הפרטים עודכנו בהצלחה", Toast.LENGTH_SHORT).show();
-        
-        // Reload data from Firebase to make sure everything is up to date
-        loadPlayerSpecificData();
     }
 
     private void handleSaveError(String errorMessage) {
