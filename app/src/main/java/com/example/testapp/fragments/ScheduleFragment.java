@@ -103,6 +103,7 @@ public class ScheduleFragment extends Fragment {
     private User currentUser;
     private boolean isPlayer = false;
     private boolean userLoaded = false;
+    private boolean viewCreated = false; // Track if view was created in this lifecycle
 
     @Nullable
     @Override
@@ -114,15 +115,47 @@ public class ScheduleFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        viewCreated = true; // Mark that view was created
+        // Reset userLoaded on each view creation to force proper filtering
+        userLoaded = false;
+
         // Initialize SharedPreferences
         sharedPreferences = requireContext().getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE);
         loadSavedFilters();
         
         initializeViews(view);
         setupRecyclerView();
-        setupViewModel();
         setupFab();
-        checkUserPermissions(); // Load user first, then setup filters
+        checkUserPermissions(); // Load user first
+        setupViewModel(); // Setup ViewModel - will wait for userLoaded before showing data
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Only reload if returning to fragment (not after initial creation)
+        if (!viewCreated) {
+            android.util.Log.d("ScheduleFragment", "onResume - returning to fragment, reloading");
+            // Clear adapter and reset userLoaded when resuming to prevent showing cached unfiltered data
+            if (adapter != null) {
+                adapter.setTrainings(new ArrayList<>());
+            }
+            userLoaded = false;
+            // Reload user permissions to ensure proper filtering
+            checkUserPermissions();
+        } else {
+            android.util.Log.d("ScheduleFragment", "onResume - first time after onViewCreated, skipping reload");
+            viewCreated = false; // Reset for next time
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        // Clear adapter when leaving to prevent stale data
+        if (adapter != null) {
+            adapter.setTrainings(new ArrayList<>());
+        }
     }
 
     private void initializeViews(View view) {
@@ -641,15 +674,16 @@ public class ScheduleFragment extends Fragment {
 
         viewModel.getFilteredTrainings().observe(getViewLifecycleOwner(), trainings -> {
             if (trainings != null) {
-                // Only set trainings if user has been loaded
+                // Wait for user to be loaded before showing any trainings
                 // This prevents showing unfiltered trainings briefly for players
                 if (!userLoaded) {
-                    android.util.Log.d("ScheduleFragment", "User not loaded yet, skipping setTrainings in observer");
+                    android.util.Log.d("ScheduleFragment", "User not loaded yet, showing empty list");
+                    adapter.setTrainings(new ArrayList<>());
                     return;
                 }
                 
                 // For players: filter to show only their team's trainings
-                if (isPlayer && currentUser != null && currentUser.getTeamIds() != null) {
+                if (isPlayer && currentUser != null && currentUser.getTeamIds() != null && !currentUser.getTeamIds().isEmpty()) {
                     android.util.Log.d("ScheduleFragment", "Filtering for player. Teams: " + currentUser.getTeamIds());
                     List<Training> playerTrainings = new ArrayList<>();
                     for (Training training : trainings) {
@@ -658,6 +692,9 @@ public class ScheduleFragment extends Fragment {
                         }
                     }
                     adapter.setTrainings(playerTrainings);
+                } else if (isPlayer) {
+                    // Player with no team - show empty list instead of all trainings
+                    adapter.setTrainings(new ArrayList<>());
                 } else {
                     adapter.setTrainings(trainings);
                 }
@@ -702,39 +739,11 @@ public class ScheduleFragment extends Fragment {
                         if (currentUser != null) {
                             isPlayer = "PLAYER".equals(currentUser.getRole());
                             userLoaded = true; // Mark user as loaded
+                            android.util.Log.d("ScheduleFragment", "User loaded: " + currentUser.getRole() + ", isPlayer: " + isPlayer + ", teamIds: " + currentUser.getTeamIds());
                             boolean canEdit = currentUser.isAdmin() || currentUser.isCoordinator();
 
                             if (!canEdit) {
                                 fab.setVisibility(View.GONE);
-                                adapter = new TrainingAdapter(
-                                    training -> {
-                                        Toast.makeText(requireContext(), training.getTeamName() + " - " + training.getStartTime(), Toast.LENGTH_SHORT).show();
-                                    },
-                                    null,
-                                    null,
-                                    null
-                                );
-                                recyclerView.setAdapter(adapter);
-
-                                // For players: don't set unfiltered trainings, wait for the filtered version from observer
-                                // This prevents briefly showing other teams' trainings
-                                if (isPlayer) {
-                                    // Will be set by the observer after filtering
-                                } else if (viewModel.getFilteredTrainings().getValue() != null) {
-                                    adapter.setTrainings(viewModel.getFilteredTrainings().getValue());
-                                }
-                            }
-                            
-                            // Trigger refresh for player filtering
-                            if (isPlayer && viewModel.getFilteredTrainings().getValue() != null) {
-                                List<Training> trainings = viewModel.getFilteredTrainings().getValue();
-                                List<Training> playerTrainings = new ArrayList<>();
-                                for (Training training : trainings) {
-                                    if (currentUser.getTeamIds() != null && currentUser.getTeamIds().contains(training.getTeamId())) {
-                                        playerTrainings.add(training);
-                                    }
-                                }
-                                adapter.setTrainings(playerTrainings);
                             }
                         }
                         
@@ -743,22 +752,6 @@ public class ScheduleFragment extends Fragment {
                         setupMonthChips();
                         loadTeamsAndCourts();
                         setupFilters();
-                        
-                        // Now that user is loaded, apply proper filtering if observer already fired
-                        if (viewModel.getFilteredTrainings().getValue() != null) {
-                            List<Training> trainings = viewModel.getFilteredTrainings().getValue();
-                            if (isPlayer && currentUser != null && currentUser.getTeamIds() != null) {
-                                List<Training> playerTrainings = new ArrayList<>();
-                                for (Training training : trainings) {
-                                    if (currentUser.getTeamIds().contains(training.getTeamId())) {
-                                        playerTrainings.add(training);
-                                    }
-                                }
-                                adapter.setTrainings(playerTrainings);
-                            } else {
-                                adapter.setTrainings(trainings);
-                            }
-                        }
                     }
 
                     @Override

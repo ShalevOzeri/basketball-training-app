@@ -79,6 +79,7 @@ public class ScheduleGridFragment extends Fragment {
     private List<Training> trainings = new ArrayList<>();
     private com.example.testapp.models.User currentUser;
     private boolean isReadOnlyMode = false;
+    private boolean userLoaded = false; // Track if user was loaded to prevent showing all trainings before filtering
 
     // Adapter
     private Schedule2DAdapter adapter2D;
@@ -161,6 +162,15 @@ public class ScheduleGridFragment extends Fragment {
         }
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Reload current user to ensure proper filtering when returning to this screen
+        android.util.Log.d("ScheduleGridFragment", "onResume - reloading current user");
+        userLoaded = false; // Reset flag to prevent showing unfiltered trainings
+        loadCurrentUser();
+    }
+
     /**
      * Load current user and determine permissions
      */
@@ -181,11 +191,16 @@ public class ScheduleGridFragment extends Fragment {
                     public void onDataChange(com.google.firebase.database.DataSnapshot snapshot) {
                         currentUser = snapshot.getValue(com.example.testapp.models.User.class);
                         if (currentUser != null) {
+                            android.util.Log.d("ScheduleGridFragment", "User loaded: " + currentUser.getName() + ", isPlayer: " + currentUser.isPlayer() + ", teams: " + (currentUser.getTeamIds() != null ? currentUser.getTeamIds().size() : 0));
                             // Only ADMIN and COORDINATOR can edit
                             isReadOnlyMode = !canEditSchedule();
+                            userLoaded = true; // Mark user as loaded
                             updateUIForPermissions();
+                            // Refresh grid to apply proper filtering based on user role
+                            refreshScheduleGrid();
                         } else {
                             isReadOnlyMode = true;
+                            userLoaded = true; // Mark as loaded even if null
                         }
                     }
 
@@ -270,7 +285,12 @@ public class ScheduleGridFragment extends Fragment {
                         for (Training t : trainings) {
                             android.util.Log.d("ScheduleGridFragment", "  - " + t.getTeamName() + " at " + t.getStartTime() + " on court " + t.getCourtId());
                         }
-                        refreshScheduleGrid();
+                        // Only refresh grid if user was already loaded to prevent showing unfiltered trainings
+                        if (userLoaded) {
+                            refreshScheduleGrid();
+                        } else {
+                            android.util.Log.d("ScheduleGridFragment", "User not loaded yet, skipping refresh");
+                        }
                     }
                 } catch (Exception e) {
                     android.util.Log.e("ScheduleGrid", "Error in trainings observer", e);
