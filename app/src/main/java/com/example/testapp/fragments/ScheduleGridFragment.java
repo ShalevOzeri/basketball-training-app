@@ -774,6 +774,37 @@ public class ScheduleGridFragment extends Fragment {
             return;
         }
         
+        // Check if the time slot is within court operating hours
+        if (selectedCourt != null && timeSlot.getStartTime() != null) {
+            Calendar slotCal = Calendar.getInstance();
+            slotCal.setTimeInMillis(slotDate);
+            int dayOfWeek = slotCal.get(Calendar.DAY_OF_WEEK);
+            
+            int slotStartMinutes = timeToMinutesSafe(timeSlot.getStartTime());
+            // If endTime is null, calculate it as startTime + 30 minutes (slot duration)
+            int slotEndMinutes;
+            if (timeSlot.getEndTime() != null) {
+                slotEndMinutes = timeToMinutesSafe(timeSlot.getEndTime());
+            } else {
+                slotEndMinutes = slotStartMinutes + TIME_SLOT_DURATION; // 30 minutes
+            }
+            
+            android.util.Log.d("ScheduleGrid", "Checking court hours - dayOfWeek: " + dayOfWeek + 
+                ", slotTime: " + timeSlot.getStartTime() + "-" + (timeSlot.getEndTime() != null ? timeSlot.getEndTime() : "calculated") + 
+                ", minutes: " + slotStartMinutes + "-" + slotEndMinutes);
+            
+            if (slotStartMinutes >= 0 && slotEndMinutes >= 0) {
+                if (!isWithinCourtHours(selectedCourt, dayOfWeek, slotStartMinutes, slotEndMinutes)) {
+                    // Error message is already shown by isWithinCourtHours method
+                    android.util.Log.w("ScheduleGrid", "Time slot outside court operating hours - blocking dialog");
+                    return;
+                }
+            }
+        } else {
+            android.util.Log.w("ScheduleGrid", "Skipping court hours check - selectedCourt: " + (selectedCourt != null) + 
+                ", startTime: " + (timeSlot.getStartTime() != null));
+        }
+        
         android.util.Log.d("ScheduleGrid", "TimeSlot: " + timeSlot.getStartTime() + " - " + timeSlot.getEndTime());
         android.util.Log.d("ScheduleGrid", "Teams count: " + teams.size());
         
@@ -986,6 +1017,21 @@ public class ScheduleGridFragment extends Fragment {
         }
 
         try {
+            // Validate that the training time is within court operating hours
+            if (selectedCourt != null) {
+                Calendar trainingCal = Calendar.getInstance();
+                trainingCal.setTimeInMillis(baseTimeSlot.getDate());
+                int dayOfWeek = trainingCal.get(Calendar.DAY_OF_WEEK);
+                
+                int startMinutes = timeToMinutes(startTime);
+                int endMinutes = timeToMinutes(endTime);
+                
+                if (!isWithinCourtHours(selectedCourt, dayOfWeek, startMinutes, endMinutes)) {
+                    // Error message is already shown by isWithinCourtHours method
+                    return;
+                }
+            }
+            
             Training training = new Training();
             training.setTeamId(selectedTeam.getTeamId());
             training.setTeamName(selectedTeam.getName());
@@ -1348,5 +1394,59 @@ public class ScheduleGridFragment extends Fragment {
         }
         
         return same;
+    }
+
+    /**
+     * Check if training time is within court operating hours.
+     * Shows error message and returns false if outside operating hours.
+     */
+    private boolean isWithinCourtHours(Court court, int dayOfWeek, int startMinutes, int endMinutes) {
+        DaySchedule schedule = court.getScheduleForDay(dayOfWeek);
+        android.util.Log.d("ScheduleGrid", "isWithinCourtHours - dayOfWeek: " + dayOfWeek + 
+            ", schedule: " + (schedule != null ? schedule.toString() : "null") + 
+            ", isActive: " + (schedule != null ? schedule.isActive() : "N/A"));
+        
+        if (schedule == null || !schedule.isActive()) {
+            Toast.makeText(getContext(), "המגרש סגור ביום זה", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        int open = timeToMinutesSafe(schedule.getOpeningHour());
+        int close = timeToMinutesSafe(schedule.getClosingHour());
+        android.util.Log.d("ScheduleGrid", "Court hours - open: " + open + " (" + schedule.getOpeningHour() + 
+            "), close: " + close + " (" + schedule.getClosingHour() + 
+            "), slot: " + startMinutes + "-" + endMinutes);
+        
+        if (open < 0 || close < 0 || open >= close) {
+            Toast.makeText(getContext(), "הגדרת שעות פעילות לא תקינה למגרש", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        if (startMinutes < open || endMinutes > close) {
+            String msg = String.format(Locale.getDefault(), "שעות חורגות משעות פעילות (%s-%s)", schedule.getOpeningHour(), schedule.getClosingHour());
+            Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show();
+            android.util.Log.w("ScheduleGrid", "Time outside hours: slot " + startMinutes + "-" + endMinutes + 
+                " vs court " + open + "-" + close);
+            return false;
+        }
+        android.util.Log.d("ScheduleGrid", "Time slot is within court hours - OK");
+        return true;
+    }
+
+    /**
+     * Convert time string (HH:mm) to minutes since midnight with error handling.
+     * Returns -1 if the time format is invalid.
+     */
+    private int timeToMinutesSafe(String time) {
+        try {
+            String[] parts = time.split(":");
+            if (parts.length != 2) return -1;
+            int h = Integer.parseInt(parts[0]);
+            int m = Integer.parseInt(parts[1]);
+            if (h < 0 || h > 23 || m < 0 || m > 59) return -1;
+            return h * 60 + m;
+        } catch (Exception e) {
+            return -1;
+        }
     }
 }
