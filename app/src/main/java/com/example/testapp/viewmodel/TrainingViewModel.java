@@ -123,7 +123,15 @@ public class TrainingViewModel extends ViewModel {
             
             // Apply day filter (multi-select)
             if (selectedDays != null && !selectedDays.isEmpty()) {
-                if (!selectedDays.contains(training.getDayOfWeek())) {
+                String trainingDay = training.getDayOfWeek();
+                // If dayOfWeek is not set, calculate it from the date
+                if (trainingDay == null || trainingDay.isEmpty()) {
+                    Calendar cal = Calendar.getInstance();
+                    cal.setTimeInMillis(training.getDate());
+                    java.text.SimpleDateFormat dayFormat = new java.text.SimpleDateFormat("EEEE", java.util.Locale.ENGLISH);
+                    trainingDay = dayFormat.format(cal.getTime());
+                }
+                if (!selectedDays.contains(trainingDay)) {
                     matches = false;
                 }
             }

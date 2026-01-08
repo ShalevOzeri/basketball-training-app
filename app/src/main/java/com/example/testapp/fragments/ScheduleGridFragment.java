@@ -1043,6 +1043,12 @@ public class ScheduleGridFragment extends Fragment {
             training.setEndTime(endTime);
             training.setCreatedBy(userId);
             training.setCreatedAt(System.currentTimeMillis());
+            
+            // Set day of week for filtering
+            Calendar cal = Calendar.getInstance();
+            cal.setTimeInMillis(baseTimeSlot.getDate());
+            SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE", Locale.ENGLISH);
+            training.setDayOfWeek(dayFormat.format(cal.getTime()));
 
             android.util.Log.d("ScheduleGrid", "Calling trainingRepository.addTraining");
 
@@ -1301,6 +1307,10 @@ public class ScheduleGridFragment extends Fragment {
         newTraining.setStartTime(training.getStartTime());
         newTraining.setEndTime(training.getEndTime());
         newTraining.setDate(futureTimestamp);
+        
+        // Set day of week for filtering
+        SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE", Locale.ENGLISH);
+        newTraining.setDayOfWeek(dayFormat.format(calendar.getTime()));
         
         android.util.Log.d("ScheduleGrid", "Adding training for " + futureDate + ": " + newTraining.getTeamName() + 
                           " (" + newTraining.getStartTime() + "-" + newTraining.getEndTime() + ")" +
