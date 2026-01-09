@@ -298,35 +298,7 @@ basketball-training-mgmt/
 
 ---
 
-## 🐛 בעיות נפוצות ופתרונות
-
-### Firebase Connection Issues
-אם יש בעיות התחברות ל-Firebase:
-1. ודא ש-`google-services.json` נמצא ב-`app/`
-2. בדוק שה-package name תואם (com.example.testapp)
-3. Sync Gradle מחדש: File > Sync Project with Gradle Files
-4. בדוק חיבור לאינטרנט
-
-### Build Errors
-- נקה ובנה מחדש: Build > Clean Project > Rebuild Project
-- Invalidate Caches: File > Invalidate Caches / Restart
-- מחק את תיקיית `build/` ו-`.gradle/`
-
-### Navigation Issues
-אם הניווט לא עובד:
-1. בדוק ש-`nav_graph.xml` קיים ב-`res/navigation/`
-2. ודא ש-`MainActivity` מגדיר את ה-NavController נכון
-3. נקה והרץ מחדש את האפליקציה
-
-### Permission Errors
-אם משתמש לא רואה כרטיסים:
-1. בדוק את תפקיד המשתמש ב-Firebase
-2. התנתק והתחבר מחדש
-3. בדוק שה-HomeFragment טוען את נתוני המשתמש
-
----
-
-## � תכונות עתידיות
+## 🔮 תכונות עתידיות
 
 ### גרסה 3.0 - ארכיטקטורה משופרת
 - **ארכיטקטורת אירועים:**
@@ -378,7 +350,35 @@ basketball-training-mgmt/
 
 ---
 
-## �👨‍💻 מחבר
+## 🐛 בעיות נפוצות ופתרונות
+
+### Firebase Connection Issues
+אם יש בעיות התחברות ל-Firebase:
+1. ודא ש-`google-services.json` נמצא ב-`app/`
+2. בדוק שה-package name תואם (com.example.testapp)
+3. Sync Gradle מחדש: File > Sync Project with Gradle Files
+4. בדוק חיבור לאינטרנט
+
+### Build Errors
+- נקה ובנה מחדש: Build > Clean Project > Rebuild Project
+- Invalidate Caches: File > Invalidate Caches / Restart
+- מחק את תיקיית `build/` ו-`.gradle/`
+
+### Navigation Issues
+אם הניווט לא עובד:
+1. בדוק ש-`nav_graph.xml` קיים ב-`res/navigation/`
+2. ודא ש-`MainActivity` מגדיר את ה-NavController נכון
+3. נקה והרץ מחדש את האפליקציה
+
+### Permission Errors
+אם משתמש לא רואה כרטיסים:
+1. בדוק את תפקיד המשתמש ב-Firebase
+2. התנתק והתחבר מחדש
+3. בדוק שה-HomeFragment טוען את נתוני המשתמש
+
+---
+
+## 👨‍💻 מחבר
 
 **שלו עוזרי**  
 פרויקט גמר - מערכות מידע  
@@ -401,7 +401,6 @@ basketball-training-mgmt/
 
 - [TESTING_GUIDE.md](TESTING_GUIDE.md) - מדריך מלא להרצת בדיקות
 - [TEST_PLAN.md](TEST_PLAN.md) - 40+ תסריטי בדיקה מפורטים
-- [CREATE_ADMIN.md](CREATE_ADMIN.md) - הוראות ליצירת מנהל ראשי
 
 ---
 
