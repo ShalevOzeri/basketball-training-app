@@ -298,21 +298,6 @@ basketball-training-mgmt/
 
 ---
 
-## 🔮 תכונות עתידיות (Roadmap)
-
-- [ ] ניהול נוכחות שחקנים
-- [ ] התראות Push למאמנים ושחקנים
-- [ ] ייצוא ללוח שנה (Google Calendar)
-- [ ] דוחות וסטטיסטיקות (אחוזי נוכחות, ניצול מגרשים)
-- [ ] ניהול תחרויות ומשחקים
-- [ ] גרירת אימונים (Drag & Drop) בתצוגת מתחם
-- [ ] סינון וחיפוש מתקדם
-- [ ] מצב Offline עם סנכרון
-- [ ] תמיכה במספר מתחמים
-- [ ] אפליקציית Web מקבילה
-
----
-
 ## 🐛 בעיות נפוצות ופתרונות
 
 ### Firebase Connection Issues
@@ -386,6 +371,10 @@ basketball-training-mgmt/
   - שחרור ל-App Store
   - תאימות מלאה לכל התכונות
   - סנכרון נתונים עם Android
+- **אפליקציית Web מקבילה:**
+  - פיתוח גרסת Web responsive
+  - גישה דרך דפדפן מכל מכשיר
+  - סנכרון real-time עם אפליקציות המובייל
 
 ---
 
