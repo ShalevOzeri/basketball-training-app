@@ -411,7 +411,7 @@ basketball-training-mgmt/
 - Firebase עבור פלטפורמת Backend מעולה
 - Material Design עבור UI Components
 - Android Jetpack עבור Navigation Component
-- הקהילה של Stack Overflow
+- Claude Sonnet 4.5 עבור סיוע בפיתוח ותיעוד
 
 ---
 
