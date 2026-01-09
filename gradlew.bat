@@ -39,6 +39,9 @@ echo location of your Java installation.
 goto fail
 
 :init
+@rem Get arguments from the command line
+set CMD_LINE_ARGS=%*
+
 @rem Execute Gradle
 "%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%APP_HOME%\gradle\wrapper\gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain %CMD_LINE_ARGS%
 
