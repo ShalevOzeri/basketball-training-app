@@ -355,12 +355,12 @@ public class AllCourtsViewFragment extends Fragment {
     private void setupDayChips() {
         chipGroupDays.removeAllViews();
         
-        // All days in order - display Monday through Saturday only (not Sunday of next week)
-        String[] days = {"שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"};
-        String[] dayValues = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+        // All days in order - display all 7 days including Sunday (week starts Sunday, ends Saturday)
+        String[] days = {"ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"};
+        String[] dayValues = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
-        // Add days from Monday to Saturday (6 days only)
-        for (int i = 0; i < 6; i++) {
+        // Add all 7 days
+        for (int i = 0; i < 7; i++) {
             final String dayValue = dayValues[i];
             
             Chip chip = new Chip(requireContext());
@@ -580,6 +580,7 @@ public class AllCourtsViewFragment extends Fragment {
         }
 
         // Get current week bounds for filtering (only if showOnlyThisWeek is true)
+        // Week starts on Sunday and ends on Saturday (6 days, not including next Sunday)
         Calendar now = Calendar.getInstance();
         Calendar weekStart = (Calendar) now.clone();
         weekStart.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
@@ -588,7 +589,10 @@ public class AllCourtsViewFragment extends Fragment {
         weekStart.set(Calendar.SECOND, 0);
         
         Calendar weekEnd = (Calendar) weekStart.clone();
-        weekEnd.add(Calendar.DATE, 7); // Fixed: use DATE instead of DAY_OF_WEEK
+        weekEnd.add(Calendar.DATE, 6); // Week is Sunday-Saturday (6 days), not including next Sunday
+        weekEnd.set(Calendar.HOUR_OF_DAY, 23);
+        weekEnd.set(Calendar.MINUTE, 59);
+        weekEnd.set(Calendar.SECOND, 59);
         
         long weekStartMillis = weekStart.getTimeInMillis();
         long weekEndMillis = weekEnd.getTimeInMillis();

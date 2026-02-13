@@ -62,7 +62,8 @@ public class ManageUsersFragment extends Fragment {
     private List<User> usersList;
     private List<User> filteredUsersList;
     private User currentUser;
-    private Map<String, String> teamsMap;
+    private Map<String, String> teamsMap;  // teamId -> teamName
+    private Map<String, List<String>> coachTeamsMap;  // coachId -> list of teamNames
     private List<Team> teamsList = new ArrayList<>();
     
     private Set<String> selectedRoles = new HashSet<>();
@@ -93,9 +94,10 @@ public class ManageUsersFragment extends Fragment {
         usersList = new ArrayList<>();
         filteredUsersList = new ArrayList<>();
         teamsMap = new HashMap<>();
+        coachTeamsMap = new HashMap<>();
 
         usersRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
-        adapter = new UsersAdapter(filteredUsersList, teamsMap, this::showChangeRoleDialog, this::showAssignTeamDialog, this::confirmDeleteUser);
+        adapter = new UsersAdapter(filteredUsersList, teamsMap, coachTeamsMap, this::showChangeRoleDialog, this::showAssignTeamDialog, this::confirmDeleteUser);
         usersRecyclerView.setAdapter(adapter);
 
         setupExpandCollapse();
@@ -235,6 +237,7 @@ public class ManageUsersFragment extends Fragment {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 teamsMap.clear();
                 teamsList.clear();
+                coachTeamsMap.clear();
                 chipGroupTeams.removeAllViews();
                 selectedTeamIds.clear();
 
@@ -260,6 +263,16 @@ public class ManageUsersFragment extends Fragment {
                     Team team = teamSnapshot.getValue(Team.class);
                     if (team != null) {
                         teamsList.add(team);
+                        teamsMap.put(team.getTeamId(), team.getName());
+                        
+                        // Build coachTeamsMap - map coachId to list of team names
+                        if (team.getCoachId() != null && !team.getCoachId().isEmpty()) {
+                            if (!coachTeamsMap.containsKey(team.getCoachId())) {
+                                coachTeamsMap.put(team.getCoachId(), new ArrayList<>());
+                            }
+                            coachTeamsMap.get(team.getCoachId()).add(team.getName());
+                        }
+                        
                         teamsMap.put(team.getTeamId(), team.getName());
                         addTeamChip(team);
                         selectedTeamIds.add(team.getTeamId());
@@ -315,8 +328,20 @@ public class ManageUsersFragment extends Fragment {
             } else {
                 // Check "No Team"
                 if (selectedTeamIds.contains("NO_TEAM")) {
-                    boolean hasNoTeam = (user.getTeamIds() == null || user.getTeamIds().isEmpty()) && 
-                                       (user.getTeamId() == null || user.getTeamId().isEmpty());
+                    boolean hasNoTeam = false;
+                    
+                    if ("COACH".equals(user.getRole())) {
+                        // Coach has no team if they're not in coachTeamsMap
+                        hasNoTeam = !coachTeamsMap.containsKey(user.getUserId()) || 
+                                   coachTeamsMap.get(user.getUserId()).isEmpty();
+                    } else if ("PLAYER".equals(user.getRole())) {
+                        // Player has no team if teamIds is empty
+                        hasNoTeam = (user.getTeamIds() == null || user.getTeamIds().isEmpty());
+                    } else {
+                        // Other roles don't have teams
+                        hasNoTeam = true;
+                    }
+                    
                     if (hasNoTeam) {
                         matchesTeam = true;
                     }
@@ -326,11 +351,23 @@ public class ManageUsersFragment extends Fragment {
                 if (!matchesTeam) {
                     for (String teamId : selectedTeamIds) {
                         if (!"NO_TEAM".equals(teamId)) {
-                            boolean isPlayerInTeam = user.getTeamIds() != null && user.getTeamIds().contains(teamId);
-                            boolean isCoachInTeam = user.getTeamId() != null && user.getTeamId().equals(teamId);
-                            if (isPlayerInTeam || isCoachInTeam) {
-                                matchesTeam = true;
-                                break;
+                            if ("PLAYER".equals(user.getRole())) {
+                                // For players - check teamIds
+                                boolean isPlayerInTeam = user.getTeamIds() != null && user.getTeamIds().contains(teamId);
+                                if (isPlayerInTeam) {
+                                    matchesTeam = true;
+                                    break;
+                                }
+                            } else if ("COACH".equals(user.getRole())) {
+                                // For coaches - check if any of their teams match
+                                for (Team team : teamsList) {
+                                    if (team.getTeamId().equals(teamId) && 
+                                        user.getUserId().equals(team.getCoachId())) {
+                                        matchesTeam = true;
+                                        break;
+                                    }
+                                }
+                                if (matchesTeam) break;
                             }
                         }
                     }
@@ -425,7 +462,29 @@ public class ManageUsersFragment extends Fragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("שיוך קבוצה עבור " + user.getName());
 
-        if ("PLAYER".equals(user.getRole())) {
+        // למאמן - עדכון teams.coachId בלבד (לא users.teamIds)
+        if ("COACH".equals(user.getRole())) {
+            builder.setItems(teamNames, (dialog, which) -> {
+                Team selectedTeam = teamsList.get(which);
+                
+                // עדכן את teams.coachId
+                DatabaseReference teamsRef = FirebaseDatabase.getInstance().getReference("teams");
+                Map<String, Object> teamUpdates = new HashMap<>();
+                teamUpdates.put("coachId", user.getUserId());
+                teamUpdates.put("coachName", user.getName());
+                
+                teamsRef.child(selectedTeam.getTeamId()).updateChildren(teamUpdates)
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(requireContext(), "הקבוצה עודכנה בהצלחה", Toast.LENGTH_SHORT).show();
+                        loadUsers();
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(requireContext(), "שגיאה בעדכון קבוצה", Toast.LENGTH_SHORT).show();
+                    });
+            });
+        }
+        // לשחקן - בחירה מרובה והעדכן teamIds
+        else if ("PLAYER".equals(user.getRole())) {
             boolean[] checkedTeams = new boolean[teamsList.size()];
             List<String> currentTeamIds = user.getTeamIds() != null ? user.getTeamIds() : new ArrayList<>();
             
@@ -444,7 +503,19 @@ public class ManageUsersFragment extends Fragment {
                         selectedTeamIds.add(teamsList.get(i).getTeamId());
                     }
                 }
-                usersRef.child(user.getUserId()).child("teamIds").setValue(selectedTeamIds)
+                
+                // עדכן את teamIds
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("teamIds", selectedTeamIds);
+                
+                // עדכן גם את teamId להיות הקבוצה הראשונה (לתאימות אחורה)
+                if (!selectedTeamIds.isEmpty()) {
+                    updates.put("teamId", selectedTeamIds.get(0));
+                } else {
+                    updates.put("teamId", null);
+                }
+                
+                usersRef.child(user.getUserId()).updateChildren(updates)
                     .addOnSuccessListener(aVoid -> {
                         Toast.makeText(requireContext(), "הקבוצות עודכנו בהצלחה", Toast.LENGTH_SHORT).show();
                         loadUsers();
@@ -454,17 +525,9 @@ public class ManageUsersFragment extends Fragment {
                     });
             });
         } else {
-            builder.setItems(teamNames, (dialog, which) -> {
-                Team selectedTeam = teamsList.get(which);
-                usersRef.child(user.getUserId()).child("teamId").setValue(selectedTeam.getTeamId())
-                    .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(requireContext(), "הקבוצה עודכנה בהצלחה", Toast.LENGTH_SHORT).show();
-                        loadUsers();
-                    })
-                    .addOnFailureListener(e -> {
-                        Toast.makeText(requireContext(), "שגיאה בעדכון קבוצה", Toast.LENGTH_SHORT).show();
-                    });
-            });
+            // לתפקידים אחרים (ADMIN, COORDINATOR) - אין צורך בקבוצה
+            Toast.makeText(requireContext(), "תפקיד זה אינו דורש שיוך לקבוצה", Toast.LENGTH_SHORT).show();
+            return;
         }
 
         builder.setNegativeButton("ביטול", null);
@@ -505,6 +568,7 @@ public class ManageUsersFragment extends Fragment {
     private static class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> {
         private List<User> users;
         private Map<String, String> teamsMap;
+        private Map<String, List<String>> coachTeamsMap;
         private OnUserClickListener listener;
         private OnAssignTeamClickListener assignTeamListener;
         private OnDeleteUserClickListener deleteUserListener;
@@ -513,10 +577,12 @@ public class ManageUsersFragment extends Fragment {
         interface OnAssignTeamClickListener { void onAssignTeamClick(User user); }
         interface OnDeleteUserClickListener { void onDeleteUserClick(User user); }
 
-        UsersAdapter(List<User> users, Map<String, String> teamsMap, OnUserClickListener listener, 
-                    OnAssignTeamClickListener assignTeamListener, OnDeleteUserClickListener deleteUserListener) {
+        UsersAdapter(List<User> users, Map<String, String> teamsMap, Map<String, List<String>> coachTeamsMap,
+                    OnUserClickListener listener, OnAssignTeamClickListener assignTeamListener, 
+                    OnDeleteUserClickListener deleteUserListener) {
             this.users = users;
             this.teamsMap = teamsMap;
+            this.coachTeamsMap = coachTeamsMap;
             this.listener = listener;
             this.assignTeamListener = assignTeamListener;
             this.deleteUserListener = deleteUserListener;
@@ -532,7 +598,7 @@ public class ManageUsersFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             User user = users.get(position);
-            holder.bind(user, teamsMap, listener, assignTeamListener, deleteUserListener);
+            holder.bind(user, teamsMap, coachTeamsMap, listener, assignTeamListener, deleteUserListener);
         }
 
         @Override
@@ -555,8 +621,9 @@ public class ManageUsersFragment extends Fragment {
                 deleteUserButton = itemView.findViewById(R.id.deleteUserButton);
             }
 
-            void bind(User user, Map<String, String> teamsMap, OnUserClickListener listener, 
-                     OnAssignTeamClickListener assignTeamListener, OnDeleteUserClickListener deleteUserListener) {
+            void bind(User user, Map<String, String> teamsMap, Map<String, List<String>> coachTeamsMap,
+                     OnUserClickListener listener, OnAssignTeamClickListener assignTeamListener, 
+                     OnDeleteUserClickListener deleteUserListener) {
                 userName.setText(user.getName());
                 userEmail.setText(user.getEmail());
                 
@@ -572,12 +639,17 @@ public class ManageUsersFragment extends Fragment {
                 // Display team names
                 StringBuilder teamsText = new StringBuilder();
                 if ("PLAYER".equals(user.getRole()) && user.getTeamIds() != null && !user.getTeamIds().isEmpty()) {
+                    // For players - use teamIds
                     List<String> teamNames = user.getTeamIds().stream()
                         .map(id -> teamsMap.getOrDefault(id, "קבוצה לא ידועה"))
                         .collect(Collectors.toList());
                     teamsText.append(String.join(", ", teamNames));
-                } else if ("COACH".equals(user.getRole()) && user.getTeamId() != null && !user.getTeamId().isEmpty()) {
-                    teamsText.append(teamsMap.getOrDefault(user.getTeamId(), "קבוצה לא ידועה"));
+                } else if ("COACH".equals(user.getRole())) {
+                    // For coaches - use coachTeamsMap (teams where coachId = userId)
+                    List<String> coachTeams = coachTeamsMap.get(user.getUserId());
+                    if (coachTeams != null && !coachTeams.isEmpty()) {
+                        teamsText.append(String.join(", ", coachTeams));
+                    }
                 }
 
                 if (teamsText.length() > 0) {

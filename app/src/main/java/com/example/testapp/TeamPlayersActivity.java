@@ -474,6 +474,12 @@ public class TeamPlayersActivity extends AppCompatActivity {
         // Update user with new team membership; player record is single per user
         Map<String, Object> updates = new HashMap<>();
         updates.put("teamIds", teamIds);
+        
+        // Always sync teamId with first team in teamIds (for backward compatibility)
+        if (!teamIds.isEmpty()) {
+            updates.put("teamId", teamIds.get(0));
+        }
+        
         usersRef.child(player.getUserId()).updateChildren(updates)
             .addOnSuccessListener(aVoid -> loadTeamPlayers())
             .addOnFailureListener(e -> Toast.makeText(TeamPlayersActivity.this, "שגיאה בהוספת שחקן", Toast.LENGTH_SHORT).show());

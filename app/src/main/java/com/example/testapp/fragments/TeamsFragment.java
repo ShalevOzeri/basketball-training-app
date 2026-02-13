@@ -212,8 +212,7 @@ public class TeamsFragment extends Fragment {
                 User selectedCoach = coachList.get(selectedCoachPosition - 1);
                 coachId = selectedCoach.getUserId();
                 coachName = selectedCoach.getName();
-                
-                usersRef.child(coachId).child("teamId").setValue(name);
+                // Coach assignment is stored in teams.coachId only
             }
 
             if (name.isEmpty()) {
@@ -341,16 +340,12 @@ public class TeamsFragment extends Fragment {
                 String newCoachId = "";
                 String newCoachName = "ללא מאמן";
                 
-                if (team.getCoachId() != null && !team.getCoachId().isEmpty()) {
-                    usersRef.child(team.getCoachId()).child("teamId").setValue(null);
-                }
+                // Coach assignment is stored in teams.coachId only (not in users.teamId)
                 
                 if (which > 0 && which <= coachList.size()) {
                     User selectedCoach = coachList.get(which - 1);
                     newCoachId = selectedCoach.getUserId();
                     newCoachName = selectedCoach.getName();
-                    
-                    usersRef.child(newCoachId).child("teamId").setValue(team.getTeamId());
                 }
                 
                 DatabaseReference teamsRef = FirebaseDatabase.getInstance().getReference("teams");
@@ -367,21 +362,9 @@ public class TeamsFragment extends Fragment {
             .setTitle("מחיקת קבוצה")
             .setMessage("האם אתה בטוח שברצונך למחוק את " + team.getName() + "?")
             .setPositiveButton("מחק", (dialog, which) -> {
-                usersRef.orderByChild("teamId").equalTo(team.getTeamId())
-                    .addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot snapshot) {
-                            for (DataSnapshot userSnapshot : snapshot.getChildren()) {
-                                userSnapshot.getRef().child("teamId").setValue(null);
-                            }
-                            viewModel.deleteTeam(team.getTeamId());
-                        }
-
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-                            Toast.makeText(requireContext(), "שגיאה במחיקת קבוצה", Toast.LENGTH_SHORT).show();
-                        }
-                    });
+                // Delete the team directly - no need to clean users.teamId for coaches
+                viewModel.deleteTeam(team.getTeamId());
+                Toast.makeText(requireContext(), "הקבוצה נמחקה", Toast.LENGTH_SHORT).show();
             })
             .setNegativeButton("ביטול", null)
             .show();

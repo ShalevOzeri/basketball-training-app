@@ -396,6 +396,11 @@ public class AddPlayersActivity extends AppCompatActivity {
                 Map<String, Object> updates = new HashMap<>();
                 updates.put("teamIds", teamIds);
                 
+                // Always sync teamId with first team in teamIds (for backward compatibility)
+                if (!teamIds.isEmpty()) {
+                    updates.put("teamId", teamIds.get(0));
+                }
+                
                 playerRef.updateChildren(updates)
                     .addOnSuccessListener(aVoid -> {
                         onSuccess.call();

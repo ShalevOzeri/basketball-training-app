@@ -31,8 +31,10 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -350,21 +352,58 @@ public class PlayerDetailsFragment extends Fragment {
 
     private void checkJerseyNumberAvailability(String teamId, String jerseyNumber, String currentUserId,
                                               OnJerseyCheckListener listener) {
-        playersRef.orderByChild("teamId").equalTo(teamId)
+        // גישה מתוקנת: בודק דרך users.teamIds ולא player.teamId
+        // כי שחקן יכול להיות במספר קבוצות ו-player.teamId אולי לא מעודכן
+        
+        DatabaseReference usersRef = FirebaseDatabase.getInstance().getReference("users");
+        usersRef.orderByChild("role").equalTo("PLAYER")
             .addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
-                    boolean isAvailable = true;
-                    for (DataSnapshot playerSnapshot : snapshot.getChildren()) {
-                        Player player = playerSnapshot.getValue(Player.class);
-                        if (player != null &&
-                            jerseyNumber.equals(player.getJerseyNumber()) &&
-                            !currentUserId.equals(player.getUserId())) {
-                            isAvailable = false;
-                            break;
+                    List<String> userIdsInTeam = new ArrayList<>();
+                    
+                    // מצא את כל ה-users ששייכים לקבוצה הזו
+                    for (DataSnapshot userSnapshot : snapshot.getChildren()) {
+                        DataSnapshot teamIdsSnapshot = userSnapshot.child("teamIds");
+                        if (teamIdsSnapshot.exists()) {
+                            for (DataSnapshot teamSnapshot : teamIdsSnapshot.getChildren()) {
+                                String tid = teamSnapshot.getValue(String.class);
+                                if (teamId.equals(tid)) {
+                                    userIdsInTeam.add(userSnapshot.getKey());
+                                    break;
+                                }
+                            }
                         }
                     }
-                    listener.onResult(isAvailable);
+                    
+                    // עכשיו בדוק מספר חולצה עבור כל player בקבוצה
+                    if (userIdsInTeam.isEmpty()) {
+                        listener.onResult(true);
+                        return;
+                    }
+                    
+                    playersRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot playersSnapshot) {
+                            boolean isAvailable = true;
+                            for (DataSnapshot playerSnapshot : playersSnapshot.getChildren()) {
+                                Player player = playerSnapshot.getValue(Player.class);
+                                if (player != null &&
+                                    userIdsInTeam.contains(player.getUserId()) &&
+                                    jerseyNumber.equals(player.getJerseyNumber()) &&
+                                    !currentUserId.equals(player.getUserId())) {
+                                    isAvailable = false;
+                                    break;
+                                }
+                            }
+                            listener.onResult(isAvailable);
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+                            listener.onResult(true);
+                        }
+                    });
                 }
 
                 @Override
