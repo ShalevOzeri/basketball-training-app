@@ -30,6 +30,7 @@ import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
@@ -79,6 +80,10 @@ public class AllCourtsViewFragment extends Fragment {
     
     private User currentUser;
     private boolean isPlayer = false;
+    
+    // Firebase listeners - need to be removed in onDestroyView
+    private ValueEventListener teamsListener;
+    private DatabaseReference teamsRef;
 
     @Nullable
     @Override
@@ -119,6 +124,17 @@ public class AllCourtsViewFragment extends Fragment {
             }
         } catch (Exception e) {
             android.util.Log.e("AllCourtsViewFragment", "Error in onResume", e);
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // Remove Firebase listeners to prevent crashes after logout
+        if (teamsRef != null && teamsListener != null) {
+            teamsRef.removeEventListener(teamsListener);
+            teamsRef = null;
+            teamsListener = null;
         }
     }
 
@@ -483,46 +499,47 @@ public class AllCourtsViewFragment extends Fragment {
     }
 
     private void loadTeams() {
-        FirebaseDatabase.getInstance().getReference("teams")
-            .addValueEventListener(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    if (!isAdded() || getContext() == null) {
-                        return; // Fragment not attached, skip update
-                    }
-                    
-                    allTeams.clear();
-                    chipGroupTeams.removeAllViews();
-                    // Do not clear selectedTeamIds to preserve filter state
+        teamsRef = FirebaseDatabase.getInstance().getReference("teams");
+        teamsListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if (!isAdded() || getContext() == null) {
+                    return; // Fragment not attached, skip update
+                }
+                
+                allTeams.clear();
+                chipGroupTeams.removeAllViews();
+                // Do not clear selectedTeamIds to preserve filter state
 
-                    for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                        Team team = snapshot.getValue(Team.class);
-                        if (team != null) {
-                            allTeams.add(team);
-                            
-                            // For players, include only their teams
-                            if (isPlayer) {
-                                if (currentUser.getTeamIds() != null && 
-                                    currentUser.getTeamIds().contains(team.getTeamId())) {
-                                    addTeamChip(team);
-                                }
-                            } else {
-                                // For non-players, include every team
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    Team team = snapshot.getValue(Team.class);
+                    if (team != null) {
+                        allTeams.add(team);
+                        
+                        // For players, include only their teams
+                        if (isPlayer) {
+                            if (currentUser.getTeamIds() != null && 
+                                currentUser.getTeamIds().contains(team.getTeamId())) {
                                 addTeamChip(team);
                             }
+                        } else {
+                            // For non-players, include every team
+                            addTeamChip(team);
                         }
                     }
-                    
-                    updateUI();
                 }
+                
+                updateUI();
+            }
 
-                @Override
-                public void onCancelled(@NonNull DatabaseError error) {
-                    if (isAdded() && getContext() != null) {
-                        Toast.makeText(requireContext(), "שגיאה בטעינת קבוצות", Toast.LENGTH_SHORT).show();
-                    }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                if (isAdded() && getContext() != null) {
+                    Toast.makeText(requireContext(), "שגיאה בטעינת קבוצות", Toast.LENGTH_SHORT).show();
                 }
-            });
+            }
+        };
+        teamsRef.addValueEventListener(teamsListener);
     }
 
     private void addTeamChip(Team team) {

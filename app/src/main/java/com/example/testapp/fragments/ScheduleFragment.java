@@ -104,6 +104,10 @@ public class ScheduleFragment extends Fragment {
     private boolean isPlayer = false;
     private boolean userLoaded = false;
     private boolean viewCreated = false; // Track if view was created in this lifecycle
+    
+    // Firebase listeners - need to be removed in onDestroyView
+    private ValueEventListener teamsListener;
+    private com.google.firebase.database.DatabaseReference teamsRef;
 
     @Nullable
     @Override
@@ -148,7 +152,16 @@ public class ScheduleFragment extends Fragment {
             viewCreated = false; // Reset for next time
         }
     }
-
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // Remove Firebase listeners to prevent crashes after logout
+        if (teamsRef != null && teamsListener != null) {
+            teamsRef.removeEventListener(teamsListener);
+            teamsRef = null;
+            teamsListener = null;
+        }
+    }
     @Override
     public void onPause() {
         super.onPause();
@@ -521,47 +534,48 @@ public class ScheduleFragment extends Fragment {
 
     private void loadTeamsAndCourts() {
         // Load teams
-        FirebaseDatabase.getInstance().getReference("teams")
-            .addValueEventListener(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    if (!isAdded() || getContext() == null) {
-                        return; // Fragment not attached, skip update
-                    }
-                    
-                    teamsList.clear();
-                    chipGroupTeams.removeAllViews();
-                    // Do not clear selectedTeamIds because they were loaded from SharedPreferences
+        teamsRef = FirebaseDatabase.getInstance().getReference("teams");
+        teamsListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if (!isAdded() || getContext() == null) {
+                    return; // Fragment not attached, skip update
+                }
+                
+                teamsList.clear();
+                chipGroupTeams.removeAllViews();
+                // Do not clear selectedTeamIds because they were loaded from SharedPreferences
 
-                    for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                        Team team = snapshot.getValue(Team.class);
-                        if (team != null) {
-                            teamsList.add(team);
-                            
-                            // For players, include only their teams
-                            if (isPlayer) {
-                                if (currentUser != null && currentUser.getTeamIds() != null && 
-                                    currentUser.getTeamIds().contains(team.getTeamId())) {
-                                    addTeamChip(team);
-                                }
-                            } else if (!isPlayer) {
-                                // For non-players, include every team
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    Team team = snapshot.getValue(Team.class);
+                    if (team != null) {
+                        teamsList.add(team);
+                        
+                        // For players, include only their teams
+                        if (isPlayer) {
+                            if (currentUser != null && currentUser.getTeamIds() != null && 
+                                currentUser.getTeamIds().contains(team.getTeamId())) {
                                 addTeamChip(team);
                             }
-                            // If isPlayer is false and currentUser is still null, do not add anything yet
+                        } else if (!isPlayer) {
+                            // For non-players, include every team
+                            addTeamChip(team);
                         }
+                        // If isPlayer is false and currentUser is still null, do not add anything yet
                     }
-                    
-                    updateTeamFilter();
                 }
+                
+                updateTeamFilter();
+            }
 
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
                     if (isAdded() && getContext() != null) {
                         Toast.makeText(requireContext(), "שגיאה בטעינת קבוצות", Toast.LENGTH_SHORT).show();
                     }
                 }
-            });
+        };
+        teamsRef.addValueEventListener(teamsListener);
 
         // Load courts
         courtViewModel = new ViewModelProvider(this).get(CourtViewModel.class);

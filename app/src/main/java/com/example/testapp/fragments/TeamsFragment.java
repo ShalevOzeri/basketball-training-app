@@ -47,6 +47,9 @@ public class TeamsFragment extends Fragment {
     private List<User> coachList = new ArrayList<>();
     private String currentUserId;
     private String currentUserRole;
+    
+    // Firebase listener - need to be removed in onDestroyView
+    private ValueEventListener coachesListener;
 
     @Nullable
     @Override
@@ -62,6 +65,16 @@ public class TeamsFragment extends Fragment {
         setupRecyclerView();
         setupViewModel();
         setupFab();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // Remove Firebase listeners to prevent crashes after logout
+        if (usersRef != null && coachesListener != null) {
+            usersRef.removeEventListener(coachesListener);
+            coachesListener = null;
+        }
     }
 
     private void initializeViews(View view) {
@@ -134,7 +147,7 @@ public class TeamsFragment extends Fragment {
     }
     
     private void loadCoaches() {
-        usersRef.addValueEventListener(new ValueEventListener() {
+        coachesListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 coachList.clear();
@@ -153,7 +166,8 @@ public class TeamsFragment extends Fragment {
             public void onCancelled(@NonNull DatabaseError error) {
                 Toast.makeText(requireContext(), "שגיאה בטעינת מאמנים ורכזים", Toast.LENGTH_SHORT).show();
             }
-        });
+        };
+        usersRef.addValueEventListener(coachesListener);
     }
 
     private void showAddTeamDialog() {
