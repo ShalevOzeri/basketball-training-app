@@ -38,6 +38,27 @@ android {
     buildFeatures {
         viewBinding true
     }
+    
+    testOptions {
+        unitTests.all {
+            testLogging {
+                events "passed", "skipped", "failed", "standardOut", "standardError"
+                showStandardStreams = true
+            }
+        }
+    }
+}
+
+// Custom task to run only PlayerFullFlowTest
+task runPlayerFlowTest(type: Exec) {
+    dependsOn 'installDebug', 'installDebugAndroidTest'
+    workingDir "${projectDir}"
+    
+    def adbPath = android.adbExecutable.toString()
+    
+    commandLine adbPath, 'shell', 'am', 'instrument', '-w', '-r',
+            '-e', 'class', 'com.example.testapp.flow.PlayerFullFlowTest',
+            'com.example.testapp.test/androidx.test.runner.AndroidJUnitRunner'
 }
 
 dependencies {

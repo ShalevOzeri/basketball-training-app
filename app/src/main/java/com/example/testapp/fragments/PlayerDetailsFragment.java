@@ -352,8 +352,8 @@ public class PlayerDetailsFragment extends Fragment {
 
     private void checkJerseyNumberAvailability(String teamId, String jerseyNumber, String currentUserId,
                                               OnJerseyCheckListener listener) {
-        // גישה מתוקנת: בודק דרך users.teamIds ולא player.teamId
-        // כי שחקן יכול להיות במספר קבוצות ו-player.teamId אולי לא מעודכן
+        // Fixed access: check via users.teamIds instead of player.teamId
+        // Because a player can be in multiple teams and player.teamId might not be updated
         
         DatabaseReference usersRef = FirebaseDatabase.getInstance().getReference("users");
         usersRef.orderByChild("role").equalTo("PLAYER")
@@ -362,7 +362,7 @@ public class PlayerDetailsFragment extends Fragment {
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
                     List<String> userIdsInTeam = new ArrayList<>();
                     
-                    // מצא את כל ה-users ששייכים לקבוצה הזו
+                    // Find all users belonging to this team
                     for (DataSnapshot userSnapshot : snapshot.getChildren()) {
                         DataSnapshot teamIdsSnapshot = userSnapshot.child("teamIds");
                         if (teamIdsSnapshot.exists()) {
@@ -376,7 +376,7 @@ public class PlayerDetailsFragment extends Fragment {
                         }
                     }
                     
-                    // עכשיו בדוק מספר חולצה עבור כל player בקבוצה
+                    // Now check jersey number for each player in the team
                     if (userIdsInTeam.isEmpty()) {
                         listener.onResult(true);
                         return;

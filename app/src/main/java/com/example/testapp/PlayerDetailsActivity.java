@@ -275,6 +275,12 @@ public class PlayerDetailsActivity extends AppCompatActivity {
             lastNameEditText.setError("שדה חובה");
             return;
         }
+        
+        // Safety check: ensure userId is not null
+        if (userId == null || userId.isEmpty()) {
+            Toast.makeText(this, "שגיאה: מזהה משתמש לא תקין", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         progressBar.setVisibility(View.VISIBLE);
         saveButton.setEnabled(false);
@@ -302,13 +308,27 @@ public class PlayerDetailsActivity extends AppCompatActivity {
         usersRef.child(userId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
+                com.example.testapp.models.User user;
+                
                 if (snapshot.exists()) {
-                    com.example.testapp.models.User user = snapshot.getValue(com.example.testapp.models.User.class);
+                    // User exists - update it
+                    user = snapshot.getValue(com.example.testapp.models.User.class);
                     if (user != null) {
                         user.setName(firstName + " " + lastName);
                         user.setPhone(playerPhone);
                         usersRef.child(userId).setValue(user);
                     }
+                } else {
+                    // User doesn't exist - create it
+                    user = new com.example.testapp.models.User();
+                    user.setUserId(userId);
+                    user.setName(firstName + " " + lastName);
+                    user.setPhone(playerPhone);
+                    user.setEmail(FirebaseAuth.getInstance().getCurrentUser() != null ? 
+                                 FirebaseAuth.getInstance().getCurrentUser().getEmail() : "");
+                    user.setRole("PLAYER");
+                    user.setCreatedAt(System.currentTimeMillis());
+                    usersRef.child(userId).setValue(user);
                 }
                 
                 updateAllPlayerRecords(firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, jerseyNumber, shirtSize);

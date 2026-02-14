@@ -462,12 +462,12 @@ public class ManageUsersFragment extends Fragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("שיוך קבוצה עבור " + user.getName());
 
-        // למאמן - עדכון teams.coachId בלבד (לא users.teamIds)
+        // For coach - update teams.coachId only (not users.teamIds)
         if ("COACH".equals(user.getRole())) {
             builder.setItems(teamNames, (dialog, which) -> {
                 Team selectedTeam = teamsList.get(which);
                 
-                // עדכן את teams.coachId
+                // Update teams.coachId
                 DatabaseReference teamsRef = FirebaseDatabase.getInstance().getReference("teams");
                 Map<String, Object> teamUpdates = new HashMap<>();
                 teamUpdates.put("coachId", user.getUserId());
@@ -483,7 +483,7 @@ public class ManageUsersFragment extends Fragment {
                     });
             });
         }
-        // לשחקן - בחירה מרובה והעדכן teamIds
+        // For player - multiple choice and update teamIds
         else if ("PLAYER".equals(user.getRole())) {
             boolean[] checkedTeams = new boolean[teamsList.size()];
             List<String> currentTeamIds = user.getTeamIds() != null ? user.getTeamIds() : new ArrayList<>();
@@ -504,11 +504,11 @@ public class ManageUsersFragment extends Fragment {
                     }
                 }
                 
-                // עדכן את teamIds
+                // Update teamIds
                 Map<String, Object> updates = new HashMap<>();
                 updates.put("teamIds", selectedTeamIds);
                 
-                // עדכן גם את teamId להיות הקבוצה הראשונה (לתאימות אחורה)
+                // Also update teamId to be the first team (for backward compatibility)
                 if (!selectedTeamIds.isEmpty()) {
                     updates.put("teamId", selectedTeamIds.get(0));
                 } else {
@@ -525,8 +525,8 @@ public class ManageUsersFragment extends Fragment {
                     });
             });
         } else {
-            // לתפקידים אחרים (ADMIN, COORDINATOR) - אין צורך בקבוצה
-            Toast.makeText(requireContext(), "תפקיד זה אינו דורש שיוך לקבוצה", Toast.LENGTH_SHORT).show();
+            // For other roles (ADMIN, COORDINATOR) - no team needed
+            Toast.makeText(requireContext(), "This role doesn't require team assignment", Toast.LENGTH_SHORT).show();
             return;
         }
 

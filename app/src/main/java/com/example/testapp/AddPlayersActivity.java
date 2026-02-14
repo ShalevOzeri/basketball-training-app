@@ -163,10 +163,12 @@ public class AddPlayersActivity extends AppCompatActivity {
     private void loadPlayers() {
         progressBar.setVisibility(View.VISIBLE);
         
+        Log.d(TAG, "Loading players for team: " + teamId);
         usersRef.orderByChild("role").equalTo("PLAYER").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 allPlayers.clear();
+                Log.d(TAG, "Total PLAYER users found: " + snapshot.getChildrenCount());
                 
                 for (DataSnapshot userSnapshot : snapshot.getChildren()) {
                     User user = userSnapshot.getValue(User.class);
@@ -178,10 +180,14 @@ public class AddPlayersActivity extends AppCompatActivity {
                         List<String> userTeamIds = user.getTeamIds();
                         if (userTeamIds == null || !userTeamIds.contains(teamId)) {
                             allPlayers.add(user);
+                            Log.d(TAG, "Added player: " + user.getName() + " (" + userSnapshot.getKey() + ")");
+                        } else {
+                            Log.d(TAG, "Skipped player (already in team): " + user.getName());
                         }
                     }
                 }
                 
+                Log.d(TAG, "Available players count: " + allPlayers.size());
                 filteredPlayers.addAll(allPlayers);
                 adapter.notifyDataSetChanged();
                 progressBar.setVisibility(View.GONE);
