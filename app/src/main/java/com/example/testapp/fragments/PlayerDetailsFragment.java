@@ -298,19 +298,10 @@ public class PlayerDetailsFragment extends Fragment {
                     final String finalPlayerKey = playerKey;
                     final boolean finalIsNewPlayer = isNewPlayer;
 
-                    String teamId = (existingPlayer != null) ? existingPlayer.getTeamId() : null;
-                    if (!TextUtils.isEmpty(jerseyNumber) && teamId != null) {
-                        checkJerseyNumberAvailability(teamId, jerseyNumber, userId, isAvailable -> {
-                            if (isAvailable) {
-                                performPlayerUpdate(finalPlayerKey, finalIsNewPlayer, firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, shirtSize, jerseyNumber);
-                            } else {
-                                Toast.makeText(requireContext(), "מספר גופיה " + jerseyNumber + " כבר תפוס בקבוצה.", Toast.LENGTH_LONG).show();
-                                performPlayerUpdate(finalPlayerKey, finalIsNewPlayer, firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, shirtSize, null);
-                            }
-                        });
-                    } else {
-                        performPlayerUpdate(finalPlayerKey, finalIsNewPlayer, firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, shirtSize, jerseyNumber);
-                    }
+                    // Note: Jersey number validation requires team context
+                    // Since Player no longer stores teamId, we skip validation here
+                    // Jersey numbers are validated when viewing team rosters
+                    performPlayerUpdate(finalPlayerKey, finalIsNewPlayer, firstName, lastName, grade, school, playerPhone, parentPhone, idNumber, birthDate, shirtSize, jerseyNumber);
                 }
 
                 @Override

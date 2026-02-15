@@ -13,7 +13,6 @@ public class Player {
     private String birthDate; // Birthdate
     private String shirtSize; // Jersey size
     private String jerseyNumber = ""; // Jersey number - initialized as empty string so the field always exists in Firebase
-    private String teamId;
     private long createdAt;
     private long updatedAt;
 
@@ -23,7 +22,7 @@ public class Player {
 
     public Player(String playerId, String userId, String firstName, String lastName, 
                   String grade, String school, String playerPhone, String parentPhone,
-                  String idNumber, String birthDate, String shirtSize, String jerseyNumber, String teamId) {
+                  String idNumber, String birthDate, String shirtSize, String jerseyNumber) {
         this.playerId = playerId;
         this.userId = userId;
         this.firstName = firstName;
@@ -36,13 +35,12 @@ public class Player {
         this.birthDate = birthDate;
         this.shirtSize = shirtSize;
         this.jerseyNumber = jerseyNumber;
-        this.teamId = teamId;
         this.createdAt = System.currentTimeMillis();
         this.updatedAt = System.currentTimeMillis();
     }
 
     // Constructor for minimal player creation (when approving a registration)
-    public Player(String playerId, String userId, String fullName, String teamId, long createdAt) {
+    public Player(String playerId, String userId, String fullName, long createdAt) {
         this.playerId = playerId;
         this.userId = userId;
         
@@ -51,7 +49,6 @@ public class Player {
         this.firstName = nameParts[0];
         this.lastName = nameParts.length > 1 ? nameParts[1] : "";
         
-        this.teamId = teamId;
         this.createdAt = createdAt;
         this.updatedAt = createdAt;
         this.jerseyNumber = ""; // Default jersey number - empty string, not null
@@ -70,7 +67,6 @@ public class Player {
     public String getBirthDate() { return birthDate; }
     public String getShirtSize() { return shirtSize; }
     public String getJerseyNumber() { return jerseyNumber; }
-    public String getTeamId() { return teamId; }
     public long getCreatedAt() { return createdAt; }
     public long getUpdatedAt() { return updatedAt; }
 
@@ -87,7 +83,6 @@ public class Player {
     public void setBirthDate(String birthDate) { this.birthDate = birthDate; }
     public void setShirtSize(String shirtSize) { this.shirtSize = shirtSize; }
     public void setJerseyNumber(String jerseyNumber) { this.jerseyNumber = jerseyNumber; }
-    public void setTeamId(String teamId) { this.teamId = teamId; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
     public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
 

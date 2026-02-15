@@ -186,8 +186,7 @@ public class TeamPlayersActivity extends AppCompatActivity {
         for (User user : teamUsers) {
             loadPlayerByUser(user, player -> {
                 if (player != null) {
-                    // Attach current team context for UI only
-                    player.setTeamId(teamId);
+                    // Player loaded successfully (teamId context is already in User.teamIds)
                     players.add(player);
                 }
                 done[0]++;
@@ -287,7 +286,7 @@ public class TeamPlayersActivity extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
         
         String userId = player.getUserId();
-        String teamId = player.getTeamId();
+        // Use activity's teamId field instead of player.getTeamId()
 
         // Remove this team from user's teamIds (keep single player record)
         DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);

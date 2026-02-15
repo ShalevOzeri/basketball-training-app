@@ -32,8 +32,7 @@ public class PlayerTest {
             "123456789", 
             "01/01/2010", 
             "M", 
-            "23",
-            "team789"
+            "23"
         );
         
         assertNotNull("Player should not be null", player);
@@ -49,21 +48,19 @@ public class PlayerTest {
         assertEquals("01/01/2010", player.getBirthDate());
         assertEquals("M", player.getShirtSize());
         assertEquals("23", player.getJerseyNumber());
-        assertEquals("team789", player.getTeamId());
     }
 
     @Test
     public void constructor_MinimalDetails_CreatesPlayer() {
         System.out.println("🧪 Test: Constructor with minimal player details");
         // Test: Creating player with minimal details
-        Player player = new Player("player123", "user456", "דוד לוי", "team789", System.currentTimeMillis());
+        Player player = new Player("player123", "user456", "דוד לוי", System.currentTimeMillis());
         
         assertNotNull("Player should not be null", player);
         assertEquals("player123", player.getPlayerId());
         assertEquals("user456", player.getUserId());
         assertEquals("דוד", player.getFirstName());
         assertEquals("לוי", player.getLastName());
-        assertEquals("team789", player.getTeamId());
         assertEquals("", player.getJerseyNumber()); // Default value
     }
 
@@ -71,7 +68,7 @@ public class PlayerTest {
     public void constructor_MinimalDetails_SplitsName() {
         System.out.println("🧪 Test: Splitting full name");
         // Test: Splitting full name into first and last name
-        Player player = new Player("player123", "user456", "משה אברהם", "team789", System.currentTimeMillis());
+        Player player = new Player("player123", "user456", "משה אברהם", System.currentTimeMillis());
         
         assertEquals("משה", player.getFirstName());
         assertEquals("אברהם", player.getLastName());
@@ -81,7 +78,7 @@ public class PlayerTest {
     public void constructor_MinimalDetails_SingleName_SetsLastNameEmpty() {
         System.out.println("🧪 Test: Single name without last name");
         // Test: Single name (without last name)
-        Player player = new Player("player123", "user456", "יוסי", "team789", System.currentTimeMillis());
+        Player player = new Player("player123", "user456", "יוסי", System.currentTimeMillis());
         
         assertEquals("יוסי", player.getFirstName());
         assertEquals("", player.getLastName());
@@ -91,7 +88,7 @@ public class PlayerTest {
     public void constructor_MinimalDetails_ThreePartName_SplitsCorrectly() {
         System.out.println("🧪 Test: Splitting three-part name");
         // Test: Three-part name splits correctly
-        Player player = new Player("player123", "user456", "דוד בן גוריון", "team789", System.currentTimeMillis());
+        Player player = new Player("player123", "user456", "דוד בן גוריון", System.currentTimeMillis());
         
         assertEquals("דוד", player.getFirstName());
         assertEquals("בן גוריון", player.getLastName()); // Rest of name goes to last name
@@ -105,7 +102,7 @@ public class PlayerTest {
         Player player = new Player(
             "player123", "user456", "שרה", "כהן",
             "ט", "תיכון ABC", "0501111111", "0502222222",
-            "111111111", "15/05/2011", "S", "10", "team123"
+            "111111111", "15/05/2011", "S", "10"
         );
         long afterCreation = System.currentTimeMillis();
         
@@ -241,16 +238,6 @@ public class PlayerTest {
     }
 
     @Test
-    public void setTeamId_UpdatesTeamId() {
-        System.out.println("🧪 Test: Updating team ID");
-        // Test: Updating team ID
-        Player player = new Player();
-        player.setTeamId("newTeam123");
-        
-        assertEquals("newTeam123", player.getTeamId());
-    }
-
-    @Test
     public void emptyConstructor_CreatesEmptyPlayer() {
         System.out.println("🧪 Test: Empty constructor");
         // Test: Empty constructor (required for Firebase)
@@ -338,7 +325,7 @@ public class PlayerTest {
     public void minimalConstructor_SetsDefaultJerseyNumber() {
         System.out.println("🧪 Test: Minimal constructor - jersey number");
         // Test: Minimal constructor sets default jersey number
-        Player player = new Player("player123", "user456", "Test Player", "team789", System.currentTimeMillis());
+        Player player = new Player("player123", "user456", "Test Player", System.currentTimeMillis());
         
         assertNotNull("Jersey number should not be null", player.getJerseyNumber());
         assertEquals("Jersey number should be empty string", "", player.getJerseyNumber());
@@ -360,11 +347,10 @@ public class PlayerTest {
         String birthDate = "10/10/2008";
         String shirtSize = "L";
         String jerseyNumber = "7";
-        String teamId = "t789";
         
         Player player = new Player(
             playerId, userId, firstName, lastName, grade, school,
-            playerPhone, parentPhone, idNumber, birthDate, shirtSize, jerseyNumber, teamId
+            playerPhone, parentPhone, idNumber, birthDate, shirtSize, jerseyNumber
         );
         
         // Verify all fields are saved correctly
@@ -380,6 +366,5 @@ public class PlayerTest {
         assertEquals(birthDate, player.getBirthDate());
         assertEquals(shirtSize, player.getShirtSize());
         assertEquals(jerseyNumber, player.getJerseyNumber());
-        assertEquals(teamId, player.getTeamId());
     }
 }
