@@ -95,7 +95,8 @@ public class PlayerDetailsTest {
     @Before
     public void setUp() throws InterruptedException {
         scenario = ActivityScenario.launch(MainActivity.class);
-        Thread.sleep(1500);
+        // Wait for MainActivity → HomeFragment load + Firebase user data fetch + role-based UI setup
+        Thread.sleep(5000);
         Intents.init();
     }
 
@@ -125,7 +126,8 @@ public class PlayerDetailsTest {
         System.out.println("\n========================================");
         System.out.println("🧪 ניווט לקבוצה ולשחקן");
         System.out.println("========================================");
-        Thread.sleep(1000);
+        // Extra wait to ensure HomeFragment cards are fully loaded and interactive
+        Thread.sleep(2000);
         
         // לחיצה על כרטיס הקבוצות
         onView(withId(R.id.teamsCard))

@@ -1,6 +1,5 @@
 plugins {
     id 'com.android.application'
-    id 'com.google.gms.google-services'
 }
 
 android {
@@ -110,3 +109,6 @@ dependencies {
     androidTestImplementation 'androidx.test:core:1.6.1'
     androidTestImplementation 'androidx.test.espresso:espresso-intents:3.6.1'
 }
+
+// Apply Google Services plugin at the end
+apply plugin: 'com.google.gms.google-services'

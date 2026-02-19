@@ -18,11 +18,9 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import com.example.testapp.AddTrainingActivity;
-import com.example.testapp.EditTrainingActivity;
 import com.example.testapp.R;
 import com.example.testapp.adapters.TrainingAdapter;
 import com.example.testapp.models.Court;
@@ -409,9 +407,9 @@ public class ScheduleFragment extends Fragment {
                 Toast.makeText(requireContext(), training.getTeamName() + " - " + training.getStartTime(), Toast.LENGTH_SHORT).show();
             },
             training -> {
-                Intent intent = new Intent(requireActivity(), EditTrainingActivity.class);
-                intent.putExtra("TRAINING", training);
-                startActivity(intent);
+                Bundle bundle = new Bundle();
+                bundle.putString("trainingId", training.getTrainingId());
+                Navigation.findNavController(requireView()).navigate(R.id.action_schedule_to_editTraining, bundle);
             },
             training -> {
                 showDeleteConfirmDialog(training);
@@ -733,7 +731,7 @@ public class ScheduleFragment extends Fragment {
 
     private void setupFab() {
         fab.setOnClickListener(v -> {
-            startActivity(new Intent(requireActivity(), AddTrainingActivity.class));
+            Navigation.findNavController(v).navigate(R.id.action_schedule_to_addTraining);
         });
     }
 

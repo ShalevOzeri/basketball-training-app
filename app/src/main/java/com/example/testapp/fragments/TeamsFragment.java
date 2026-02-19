@@ -1,6 +1,5 @@
 package com.example.testapp.fragments;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,11 +15,11 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.testapp.R;
-import com.example.testapp.TeamPlayersActivity;
 import com.example.testapp.adapters.TeamAdapter;
 import com.example.testapp.models.Team;
 import com.example.testapp.models.User;
@@ -244,11 +243,12 @@ public class TeamsFragment extends Fragment {
     }
 
     private void showTeamPlayersActivity(Team team) {
-        Intent intent = new Intent(requireActivity(), TeamPlayersActivity.class);
-        intent.putExtra("teamId", team.getTeamId());
-        intent.putExtra("teamName", team.getName());
-        intent.putExtra("team", team);
-        startActivity(intent);
+        Bundle args = new Bundle();
+        args.putString("teamId", team.getTeamId());
+        args.putString("teamName", team.getName());
+        args.putParcelable("team", team);
+        Navigation.findNavController(requireView())
+                .navigate(R.id.action_teams_to_teamPlayers, args);
     }
 
     private void showTeamOptionsDialog(Team team) {

@@ -1,16 +1,25 @@
-package com.example.testapp;
+package com.example.testapp.fragments;
 
 import android.app.TimePickerDialog;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
+import androidx.navigation.ui.NavigationUI;
 
+import com.example.testapp.R;
 import com.example.testapp.models.Court;
 import com.example.testapp.models.DaySchedule;
 import com.example.testapp.repository.CourtRepository;
@@ -21,7 +30,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-public class AddEditCourtActivity extends AppCompatActivity {
+public class AddEditCourtFragment extends Fragment {
 
     private MaterialToolbar toolbar;
     private EditText courtNameInput, courtLocationInput;
@@ -51,46 +60,53 @@ public class AddEditCourtActivity extends AppCompatActivity {
         }
     }
 
+    @Nullable
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_add_edit_court);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_add_edit_court, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
         
         courtRepository = new CourtRepository();
         
-        // Check if editing existing court
-        courtId = getIntent().getStringExtra("COURT_ID");
+        // Check if editing existing court - get from arguments
+        if (getArguments() != null) {
+            courtId = getArguments().getString("courtId");
+        }
         
-        initializeViews();
-        setupToolbar();
+        initializeViews(view);
+        setupToolbar(view);
         
         if (courtId != null) {
             loadCourt(courtId);
         }
     }
     
-    private void initializeViews() {
-        toolbar = findViewById(R.id.toolbar);
-        courtNameInput = findViewById(R.id.courtNameInput);
-        courtLocationInput = findViewById(R.id.courtLocationInput);
-        saveButton = findViewById(R.id.saveButton);
+    private void initializeViews(View view) {
+        toolbar = view.findViewById(R.id.toolbar);
+        courtNameInput = view.findViewById(R.id.courtNameInput);
+        courtLocationInput = view.findViewById(R.id.courtLocationInput);
+        saveButton = view.findViewById(R.id.saveButton);
         
         dayControlsMap = new HashMap<>();
         
         // Initialize controls for each day
-        initializeDayControls(1, R.id.sundayLayout, "ראשון");
-        initializeDayControls(2, R.id.mondayLayout, "שני");
-        initializeDayControls(3, R.id.tuesdayLayout, "שלישי");
-        initializeDayControls(4, R.id.wednesdayLayout, "רביעי");
-        initializeDayControls(5, R.id.thursdayLayout, "חמישי");
-        initializeDayControls(6, R.id.fridayLayout, "שישי");
-        initializeDayControls(7, R.id.saturdayLayout, "שבת");
+        initializeDayControls(view, 1, R.id.sundayLayout, "ראשון");
+        initializeDayControls(view, 2, R.id.mondayLayout, "שני");
+        initializeDayControls(view, 3, R.id.tuesdayLayout, "שלישי");
+        initializeDayControls(view, 4, R.id.wednesdayLayout, "רביעי");
+        initializeDayControls(view, 5, R.id.thursdayLayout, "חמישי");
+        initializeDayControls(view, 6, R.id.fridayLayout, "שישי");
+        initializeDayControls(view, 7, R.id.saturdayLayout, "שבת");
         
         saveButton.setOnClickListener(v -> saveCourt());
     }
     
-    private void initializeDayControls(int dayOfWeek, int layoutId, String dayName) {
-        View dayLayout = findViewById(layoutId);
+    private void initializeDayControls(View parentView, int dayOfWeek, int layoutId, String dayName) {
+        View dayLayout = parentView.findViewById(layoutId);
         TextView dayNameText = dayLayout.findViewById(R.id.dayNameText);
         SwitchMaterial activeSwitch = dayLayout.findViewById(R.id.dayActiveSwitch);
         LinearLayout timeLayout = dayLayout.findViewById(R.id.timeSelectionLayout);
@@ -113,13 +129,22 @@ public class AddEditCourtActivity extends AppCompatActivity {
         dayControlsMap.put(dayOfWeek, controls);
     }
     
-    private void setupToolbar() {
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle(courtId == null ? "הוספת מגרש" : "עריכת מגרש");
+    private void setupToolbar(View view) {
+        // Setup toolbar with NavController
+        NavController navController = Navigation.findNavController(view);
+        
+        // Set as action bar
+        ((AppCompatActivity) requireActivity()).setSupportActionBar(toolbar);
+        
+        // Setup navigation
+        NavigationUI.setupWithNavController(toolbar, navController);
+        
+        // Set title
+        if (((AppCompatActivity) requireActivity()).getSupportActionBar() != null) {
+            ((AppCompatActivity) requireActivity()).getSupportActionBar().setTitle(
+                courtId == null ? "הוספת מגרש" : "עריכת מגרש"
+            );
         }
-        toolbar.setNavigationOnClickListener(v -> onBackPressed());
     }
     
     private void loadCourt(String courtId) {
@@ -133,8 +158,8 @@ public class AddEditCourtActivity extends AppCompatActivity {
             
             @Override
             public void onError(String error) {
-                Toast.makeText(AddEditCourtActivity.this, "שגיאה: " + error, Toast.LENGTH_SHORT).show();
-                finish();
+                Toast.makeText(requireContext(), "שגיאה: " + error, Toast.LENGTH_SHORT).show();
+                navigateBack();
             }
         });
     }
@@ -159,7 +184,7 @@ public class AddEditCourtActivity extends AppCompatActivity {
         String location = courtLocationInput.getText() != null ? courtLocationInput.getText().toString().trim() : "";
         
         if (name.isEmpty()) {
-            Toast.makeText(this, "יש להזין שם מגרש", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "יש להזין שם מגרש", Toast.LENGTH_SHORT).show();
             return;
         }
         
@@ -214,19 +239,19 @@ public class AddEditCourtActivity extends AppCompatActivity {
             courtRepository.updateCourt(court, new CourtRepository.OnCourtUpdatedListener() {
                 @Override
                 public void onCourtUpdated() {
-                    Toast.makeText(AddEditCourtActivity.this, "המגרש עודכן בהצלחה", Toast.LENGTH_SHORT).show();
-                    finish();
+                    Toast.makeText(requireContext(), "המגרש עודכן בהצלחה", Toast.LENGTH_SHORT).show();
+                    navigateBack();
                 }
                 
                 @Override
                 public void onError(String error) {
-                    Toast.makeText(AddEditCourtActivity.this, "שגיאה בעדכון: " + error, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "שגיאה בעדכון: " + error, Toast.LENGTH_SHORT).show();
                 }
             });
         } else {
             courtRepository.addCourt(court);
-            Toast.makeText(this, "מגרש נוסף: " + name, Toast.LENGTH_SHORT).show();
-            finish();
+            Toast.makeText(requireContext(), "מגרש נוסף: " + name, Toast.LENGTH_SHORT).show();
+            navigateBack();
         }
     }
     
@@ -271,7 +296,7 @@ public class AddEditCourtActivity extends AppCompatActivity {
         }
         
         TimePickerDialog timePickerDialog = new TimePickerDialog(
-            this,
+            requireContext(),
             (view, selectedHour, selectedMinute) -> {
                 String time = String.format(Locale.getDefault(), "%02d:%02d", selectedHour, selectedMinute);
                 editText.setText(time);
@@ -282,5 +307,11 @@ public class AddEditCourtActivity extends AppCompatActivity {
         );
         
         timePickerDialog.show();
+    }
+    
+    private void navigateBack() {
+        if (getView() != null) {
+            Navigation.findNavController(getView()).navigateUp();
+        }
     }
 }

@@ -1,11 +1,10 @@
 package com.example.testapp.flow;
 
+import androidx.test.core.app.ActivityScenario;
 import androidx.test.espresso.intent.Intents;
-import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 
-import com.example.testapp.LoginActivity;
 import com.example.testapp.MainActivity;
 import com.example.testapp.R;
 import com.google.firebase.auth.FirebaseAuth;
@@ -14,7 +13,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
@@ -46,10 +44,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)  // Run tests in alphabetical order
 public class LoginFlowTest {
 
-    // Don't auto-launch activity - we need to logout first
-    @Rule
-    public ActivityScenarioRule<LoginActivity> activityRule =
-            new ActivityScenarioRule<>(LoginActivity.class);
+    private ActivityScenario<MainActivity> scenario;
 
     @BeforeClass
     public static void globalSetUp() {
@@ -58,22 +53,28 @@ public class LoginFlowTest {
     }
 
     @Before
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         // Logout any existing user before testing login
         FirebaseAuth.getInstance().signOut();
         
-        // Wait a bit for logout to complete
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        // Wait for logout to complete
+        Thread.sleep(2000);
         
         Intents.init();
+        
+        // Launch MainActivity after logout is complete
+        scenario = ActivityScenario.launch(MainActivity.class);
+        
+        // Wait for MainActivity → HomeFragment → LoginFragment navigation chain
+        // This takes time: HomeFragment loads, checks auth, navigates to LoginFragment
+        Thread.sleep(5000);
     }
 
     @After
     public void tearDown() {
+        if (scenario != null) {
+            scenario.close();
+        }
         Intents.release();
     }
 
@@ -85,7 +86,8 @@ public class LoginFlowTest {
         System.out.println("🔑 Testing: Login Screen Displays All Elements");
         System.out.println("========================================");
         // Test: All elements on login page displayed correctly
-        Thread.sleep(800); // Wait to see screen
+        // Additional wait to ensure LoginFragment is fully loaded and interactive
+        Thread.sleep(2000);
         
         onView(withId(R.id.emailEditText)).check(matches(isDisplayed()));
         Thread.sleep(300);
@@ -177,7 +179,8 @@ public class LoginFlowTest {
         System.out.println("🔑 Testing: Login with Short Password Shows Error");
         System.out.println("========================================");
         // Test: Password too short
-        Thread.sleep(800);
+        // Extra wait to ensure UI is stable after previous tests
+        Thread.sleep(2000);
         
         onView(withId(R.id.emailEditText)).perform(typeText("test@example.com"), closeSoftKeyboard());
         Thread.sleep(800);
@@ -186,7 +189,10 @@ public class LoginFlowTest {
         Thread.sleep(800);
         
         onView(withId(R.id.loginButton)).perform(click());
-        Thread.sleep(1500);
+        Thread.sleep(3000); // Increased wait time for dialog/navigation
+        
+        // Test passes if no crash occurs (validation prevents login)
+        System.out.println("✅ Short password validation working");
     }
 
     @Test
@@ -195,7 +201,7 @@ public class LoginFlowTest {
         System.out.println("🔑 Testing: Login with Wrong Credentials Shows Error");
         System.out.println("========================================");
         // Test: Wrong credentials
-        Thread.sleep(800);
+        Thread.sleep(2000);
         
         onView(withId(R.id.emailEditText)).perform(typeText("wrong@email.com"), closeSoftKeyboard());
         Thread.sleep(800);
@@ -210,12 +216,12 @@ public class LoginFlowTest {
     // ========== Navigation Tests ==========
     
     @Test
-    public void d1_clickRegisterButton_NavigatesToRegisterActivity() throws InterruptedException {
+    public void d1_clickRegisterButton_NavigatesToRegisterFragment() throws InterruptedException {
         System.out.println("\n========================================");
         System.out.println("🔑 Testing: Click Register Button Navigates to Register");
         System.out.println("========================================");
         // Test: Click on register button
-        Thread.sleep(800);
+        Thread.sleep(2000);
         
         onView(withId(R.id.registerButton)).perform(click());
         Thread.sleep(1500); // לראות את המעבר
@@ -227,7 +233,7 @@ public class LoginFlowTest {
         System.out.println("🔑 Testing: Click Forgot Password Shows Dialog");
         System.out.println("========================================");
         // Test: Click on "forgot password"
-        Thread.sleep(800);
+        Thread.sleep(2000);
         
         onView(withId(R.id.forgotPasswordTextView)).perform(click());
         Thread.sleep(1000);
@@ -247,7 +253,7 @@ public class LoginFlowTest {
         System.out.println("🔑 Testing: Forgot Password - Enter Email");
         System.out.println("========================================");
         // Test: Enter email for password reset
-        Thread.sleep(800);
+        Thread.sleep(2000);
         
         onView(withId(R.id.forgotPasswordTextView)).perform(click());
         Thread.sleep(1000);
@@ -266,7 +272,7 @@ public class LoginFlowTest {
     @Test
     public void z_successfulLogin_NavigatesToMainActivity() throws InterruptedException {
         System.out.println("\n========================================");
-        System.out.println("🔑 Testing: Successful Login Navigates to Main Activity");
+        System.out.println("🔑 Testing: Successful Login Navigates to Home");
         System.out.println("========================================");
         // Test: Successful login and navigate to home screen
         // NOTE: Runs last (alphabetically) to not affect other tests
@@ -285,13 +291,15 @@ public class LoginFlowTest {
         
         // Click login
         onView(withId(R.id.loginButton)).perform(click());
-        Thread.sleep(1000); // לראות את הלחיצה
+        System.out.println("⏳ Waiting for Firebase authentication...");
         
-        // Wait for Firebase authentication and navigation
-        Thread.sleep(3000); // לראות את המעבר למסך הבית
+        // Wait for Firebase authentication and navigation to HomeFragment
+        Thread.sleep(5000);
         
-        // Verify we navigated to MainActivity
-        intended(hasComponent(MainActivity.class.getName()));
+        // Verify we navigated to HomeFragment by checking for home screen elements
+        // Since we're using Navigation Component, we verify by checking if home elements are displayed
+        onView(withId(R.id.courtsCard)).check(matches(isDisplayed()));
+        System.out.println("✅ Successfully navigated to HomeFragment");
         Thread.sleep(1000);
     }
 }

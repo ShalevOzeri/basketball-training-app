@@ -55,8 +55,8 @@ public class MainActivity extends AppCompatActivity {
             // Retrieve NavController from the NavHostFragment
             navController = Navigation.findNavController(this, R.id.nav_host_fragment);
             
-            // Configure AppBarConfiguration - homeFragment is the root destination
-            appBarConfiguration = new AppBarConfiguration.Builder(R.id.homeFragment).build();
+            // Configure AppBarConfiguration - loginFragment is the root destination
+            appBarConfiguration = new AppBarConfiguration.Builder(R.id.loginFragment, R.id.homeFragment).build();
             
             // Connect the toolbar to navigation
             NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
@@ -98,10 +98,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void logout() {
         userRepository.logout();
-        Intent intent = new Intent(MainActivity.this, LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
+        // Navigate to login fragment
+        if (navController != null) {
+            navController.navigate(R.id.loginFragment);
+        }
     }
 }
 

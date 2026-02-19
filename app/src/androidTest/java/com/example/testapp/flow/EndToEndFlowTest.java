@@ -92,7 +92,8 @@ public class EndToEndFlowTest {
     public void setUp() throws InterruptedException {
         // Launch MainActivity (user already logged in from BeforeClass)
         scenario = ActivityScenario.launch(MainActivity.class);
-        Thread.sleep(1500);
+        // Wait for MainActivity → HomeFragment load + Firebase user data + role UI
+        Thread.sleep(5000);
         
         Intents.init();
     }

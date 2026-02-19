@@ -1,10 +1,8 @@
-package com.example.testapp;
+package com.example.testapp.fragments;
 
-import android.content.Intent;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -14,12 +12,19 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
 import androidx.core.widget.NestedScrollView;
+import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
+import androidx.navigation.ui.NavigationUI;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.testapp.R;
 import com.example.testapp.adapters.AddPlayersAdapter;
 import com.example.testapp.models.Player;
 import com.example.testapp.models.User;
@@ -36,10 +41,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class AddPlayersActivity extends AppCompatActivity {
+public class AddPlayersFragment extends Fragment {
 
-    private static final String TAG = "AddPlayersActivity";
+    private static final String TAG = "AddPlayersFragment";
 
+    private MaterialToolbar toolbar;
     private LinearLayout filterHeader;
     private NestedScrollView filtersScrollView;
     private ImageView expandCollapseIcon;
@@ -50,37 +56,32 @@ public class AddPlayersActivity extends AppCompatActivity {
     private TextView emptyView;
     private MaterialButton confirmButton;
     private AddPlayersAdapter adapter;
+    
     private String teamId;
     private String teamName;
     private List<User> allPlayers;
     private List<User> filteredPlayers;
     private DatabaseReference usersRef;
 
+    @Nullable
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_add_players);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_add_players, container, false);
+    }
 
-        teamId = getIntent().getStringExtra("teamId");
-        teamName = getIntent().getStringExtra("teamName");
-
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("הוסף שחקנים ל" + teamName);
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        
+        // Get arguments
+        if (getArguments() != null) {
+            teamId = getArguments().getString("teamId");
+            teamName = getArguments().getString("teamName");
         }
-        toolbar.setNavigationOnClickListener(v -> finish());
 
-        filterHeader = findViewById(R.id.filterHeader);
-        filtersScrollView = findViewById(R.id.filtersScrollView);
-        expandCollapseIcon = findViewById(R.id.expandCollapseIcon);
-        searchView = findViewById(R.id.searchView);
-        playersRecyclerView = findViewById(R.id.playersRecyclerView);
-        progressBar = findViewById(R.id.progressBar);
-        emptyView = findViewById(R.id.emptyView);
-        confirmButton = findViewById(R.id.confirmButton);
-
+        initializeViews(view);
+        setupToolbar(view);
+        
         usersRef = FirebaseDatabase.getInstance().getReference("users");
 
         allPlayers = new ArrayList<>();
@@ -91,6 +92,34 @@ public class AddPlayersActivity extends AppCompatActivity {
         loadPlayers();
         setupSearchListener();
         setupConfirmButton();
+    }
+
+    private void initializeViews(View view) {
+        toolbar = view.findViewById(R.id.toolbar);
+        filterHeader = view.findViewById(R.id.filterHeader);
+        filtersScrollView = view.findViewById(R.id.filtersScrollView);
+        expandCollapseIcon = view.findViewById(R.id.expandCollapseIcon);
+        searchView = view.findViewById(R.id.searchView);
+        playersRecyclerView = view.findViewById(R.id.playersRecyclerView);
+        progressBar = view.findViewById(R.id.progressBar);
+        emptyView = view.findViewById(R.id.emptyView);
+        confirmButton = view.findViewById(R.id.confirmButton);
+    }
+
+    private void setupToolbar(View view) {
+        // Setup toolbar with NavController
+        NavController navController = Navigation.findNavController(view);
+        
+        // Set as action bar
+        ((AppCompatActivity) requireActivity()).setSupportActionBar(toolbar);
+        
+        // Setup navigation
+        NavigationUI.setupWithNavController(toolbar, navController);
+        
+        // Set title
+        if (((AppCompatActivity) requireActivity()).getSupportActionBar() != null) {
+            ((AppCompatActivity) requireActivity()).getSupportActionBar().setTitle("הוסף שחקנים ל" + teamName);
+        }
     }
 
     private void setupExpandCollapse() {
@@ -121,7 +150,7 @@ public class AddPlayersActivity extends AppCompatActivity {
     }
 
     private void setupRecyclerView() {
-        playersRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        playersRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new AddPlayersAdapter(filteredPlayers);
         playersRecyclerView.setAdapter(adapter);
     }
@@ -197,7 +226,7 @@ public class AddPlayersActivity extends AppCompatActivity {
             @Override
             public void onCancelled(DatabaseError error) {
                 progressBar.setVisibility(View.GONE);
-                Toast.makeText(AddPlayersActivity.this, "שגיאה בטעינת שחקנים", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "שגיאה בטעינת שחקנים", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -217,7 +246,7 @@ public class AddPlayersActivity extends AppCompatActivity {
             List<User> selectedPlayers = adapter.getSelectedPlayers();
             
             if (selectedPlayers.isEmpty()) {
-                Toast.makeText(this, "בחר לפחות שחקן אחד", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "בחר לפחות שחקן אחד", Toast.LENGTH_SHORT).show();
                 return;
             }
             
@@ -230,12 +259,12 @@ public class AddPlayersActivity extends AppCompatActivity {
                     done[0]++;
                     if (done[0] == total) {
                         progressBar.setVisibility(View.GONE);
-                        Toast.makeText(AddPlayersActivity.this, total + " שחקנים נוספו", Toast.LENGTH_SHORT).show();
-                        finish();
+                        Toast.makeText(requireContext(), total + " שחקנים נוספו", Toast.LENGTH_SHORT).show();
+                        navigateBack();
                     }
                 }, () -> {
                     progressBar.setVisibility(View.GONE);
-                    Toast.makeText(AddPlayersActivity.this, "שגיאה בהוספת שחקן", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "שגיאה בהוספת שחקן", Toast.LENGTH_SHORT).show();
                 });
             }
         });
@@ -247,7 +276,7 @@ public class AddPlayersActivity extends AppCompatActivity {
 
     private void addPlayerToTeam(User player, SimpleCallback onSuccess, SimpleCallback onError) {
         if (player.getUserId() == null || player.getUserId().isEmpty()) {
-            Toast.makeText(this, "שגיאה: מזהה משתמש חסר", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "שגיאה: מזהה משתמש חסר", Toast.LENGTH_SHORT).show();
             onError.call();
             return;
         }
@@ -321,7 +350,7 @@ public class AddPlayersActivity extends AppCompatActivity {
                                         
                                         // If the other player is on the same team, it's a conflict
                                         if (teamId.equals(otherPlayerTeamId)) {
-                                            Toast.makeText(AddPlayersActivity.this, 
+                                            Toast.makeText(requireContext(), 
                                                 "קיים שחקן אחר בקבוצה עם מספר גופיה זה - השחקן יתווסף ללא מספר גופיה", 
                                                 Toast.LENGTH_LONG).show();
                                             clearPlayerJerseyNumber(userId);
@@ -375,6 +404,7 @@ public class AddPlayersActivity extends AppCompatActivity {
             }
         });
     }
+    
     private void proceedWithAddingPlayerToTeam(User player, SimpleCallback onSuccess, SimpleCallback onError) {
         // Read current teamIds from Firebase to avoid overwriting existing data
         DatabaseReference playerRef = usersRef.child(player.getUserId());
@@ -412,7 +442,7 @@ public class AddPlayersActivity extends AppCompatActivity {
                         onSuccess.call();
                     })
                     .addOnFailureListener(e -> {
-                        Toast.makeText(AddPlayersActivity.this, "שגיאה: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(requireContext(), "שגיאה: " + e.getMessage(), Toast.LENGTH_LONG).show();
                         onError.call();
                     });
             }
@@ -422,5 +452,11 @@ public class AddPlayersActivity extends AppCompatActivity {
                 onError.call();
             }
         });
+    }
+    
+    private void navigateBack() {
+        if (getView() != null) {
+            Navigation.findNavController(getView()).navigateUp();
+        }
     }
 }

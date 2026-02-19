@@ -1,8 +1,10 @@
-package com.example.testapp;
+package com.example.testapp.fragments;
 
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -11,14 +13,17 @@ import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
 
+import com.example.testapp.R;
 import com.example.testapp.models.User;
 import com.example.testapp.repository.UserRepository;
-import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.textfield.TextInputLayout;
 
-public class RegisterActivity extends AppCompatActivity {
+public class RegisterFragment extends Fragment {
 
     private EditText nameEditText, emailEditText, passwordEditText, phoneEditText;
     private TextInputLayout emailInputLayout;
@@ -26,21 +31,18 @@ public class RegisterActivity extends AppCompatActivity {
     private Button registerButton;
     private ProgressBar progressBar;
     private UserRepository userRepository;
-    private MaterialToolbar toolbar;
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_register, container, false);
+    }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_register);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
-        toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
-        toolbar.setNavigationOnClickListener(v -> finish());
-
-        initializeViews();
+        initializeViews(view);
         userRepository = new UserRepository();
         
         setupRoleSpinner();
@@ -50,7 +52,7 @@ public class RegisterActivity extends AppCompatActivity {
     
     private void setupRoleSpinner() {
         String[] roles = {"מאמן (COACH)", "שחקן (PLAYER)"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, roles);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, roles);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         roleSpinner.setAdapter(adapter);
 
@@ -70,15 +72,15 @@ public class RegisterActivity extends AppCompatActivity {
         updateEmailVisibility(getSelectedRole());
     }
 
-    private void initializeViews() {
-        nameEditText = findViewById(R.id.nameEditText);
-        emailEditText = findViewById(R.id.emailEditText);
-        emailInputLayout = findViewById(R.id.emailInputLayout);
-        passwordEditText = findViewById(R.id.passwordEditText);
-        phoneEditText = findViewById(R.id.phoneEditText);
-        roleSpinner = findViewById(R.id.roleSpinner);
-        registerButton = findViewById(R.id.registerButton);
-        progressBar = findViewById(R.id.progressBar);
+    private void initializeViews(View view) {
+        nameEditText = view.findViewById(R.id.nameEditText);
+        emailEditText = view.findViewById(R.id.emailEditText);
+        emailInputLayout = view.findViewById(R.id.emailInputLayout);
+        passwordEditText = view.findViewById(R.id.passwordEditText);
+        phoneEditText = view.findViewById(R.id.phoneEditText);
+        roleSpinner = view.findViewById(R.id.roleSpinner);
+        registerButton = view.findViewById(R.id.registerButton);
+        progressBar = view.findViewById(R.id.progressBar);
     }
 
     private String getSelectedRole() {
@@ -123,7 +125,7 @@ public class RegisterActivity extends AppCompatActivity {
 
         // For players, either email or phone must be provided
         if (role.equals("PLAYER") && TextUtils.isEmpty(email) && TextUtils.isEmpty(phone)) {
-            Toast.makeText(this, "Please provide either email or phone number", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "Please provide either email or phone number", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -139,15 +141,17 @@ public class RegisterActivity extends AppCompatActivity {
             @Override
             public void onSuccess(User user) {
                 progressBar.setVisibility(View.GONE);
-                Toast.makeText(RegisterActivity.this, "Registration successful!", Toast.LENGTH_SHORT).show();
-                finish();
+                Toast.makeText(requireContext(), "Registration successful!", Toast.LENGTH_SHORT).show();
+                if (getView() != null) {
+                    Navigation.findNavController(getView()).navigateUp();
+                }
             }
 
             @Override
             public void onFailure(String error) {
                 progressBar.setVisibility(View.GONE);
                 registerButton.setEnabled(true);
-                Toast.makeText(RegisterActivity.this, "Registration failed: " + error, Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), "Registration failed: " + error, Toast.LENGTH_LONG).show();
             }
         });
     }

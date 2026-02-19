@@ -18,70 +18,17 @@
         android:layoutDirection="rtl"
         android:theme="@style/AppTheme">
         
+        <!-- Single Activity Architecture with Navigation Component -->
+        <!-- All screens are now Fragments managed by MainActivity -->
+        
         <activity
-            android:name=".LoginActivity"
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        
-        <activity
-            android:name=".RegisterActivity"
-            android:exported="false" />
-        
-        <activity
-            android:name=".MainActivity"
-            android:exported="false" />
-            
-        <activity
-            android:name=".TeamsActivity"
-            android:exported="false" />
-            
-        <activity
-            android:name=".CourtsActivity"
-            android:exported="false" />
-            
-        <activity
-            android:name=".ScheduleActivity"
-            android:exported="false" />
-            
-        <activity
-            android:name=".AllCourtsViewActivity"
-            android:exported="false" />
-            
-        <activity
-            android:name=".CourtScheduleActivity"
-            android:exported="false" />
-            
-        <activity
-            android:name=".AddEditCourtActivity"
-            android:exported="false" />
-            
-        <activity
-            android:name=".ManageUsersActivity"
-            android:exported="false" />
-            
-        <activity
-            android:name=".PlayerDetailsActivity"
-            android:exported="false" />
-            
-        <activity
-            android:name=".TeamPlayersActivity"
-            android:exported="false" />
-            
-        <activity
-            android:name=".AddPlayersActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".AddTrainingActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".EditTrainingActivity"
-            android:exported="false" />
             
         <provider
             android:name="androidx.core.content.FileProvider"

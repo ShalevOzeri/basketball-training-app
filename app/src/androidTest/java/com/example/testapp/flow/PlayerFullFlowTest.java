@@ -11,7 +11,6 @@ import androidx.test.espresso.intent.Intents;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 
-import com.example.testapp.LoginActivity;
 import com.example.testapp.MainActivity;
 import com.example.testapp.R;
 import com.example.testapp.models.User;
@@ -275,8 +274,9 @@ public class PlayerFullFlowTest {
         System.out.println("📋 Test player email: " + testPlayerEmail);
         Thread.sleep(1000);
         
-        scenario = ActivityScenario.launch(LoginActivity.class);
-        Thread.sleep(1500);
+        // MainActivity will show LoginFragment when user is not logged in
+        scenario = ActivityScenario.launch(MainActivity.class);
+        Thread.sleep(5000); // Increased wait for HomeFragment → LoginFragment navigation
         
         onView(withId(R.id.emailEditText))
                 .perform(replaceText(testPlayerEmail), closeSoftKeyboard());
@@ -316,46 +316,61 @@ public class PlayerFullFlowTest {
             throw new RuntimeException("ERROR at STEP 2: testPlayerUserId is null!");
         }
         
-        Intent intent = new Intent(InstrumentationRegistry.getInstrumentation().getTargetContext(), com.example.testapp.PlayerDetailsActivity.class);
-        intent.putExtra("userId", testPlayerUserId);
-        System.out.println("✅ Intent created with userId: " + testPlayerUserId);
-        scenario = ActivityScenario.launch(intent);
+        // TODO: Update this test to use Navigation Component instead of direct Activity launch
+        // PlayerDetailsActivity was migrated to PlayerDetailsFragment
+        // Need to navigate through MainActivity -> HomeFragment -> PlayerDetailsFragment with userId
+        
+        // For now, navigate to MainActivity (which shows HomeFragment)
+        scenario = ActivityScenario.launch(MainActivity.class);
+        Thread.sleep(7000); // Extended wait for MainActivity → HomeFragment → Firebase user data → role UI
+        
+        // Click on "Player Details" card to navigate to PlayerDetailsFragment
+        // Card is below the fold, so scroll to it first (don't check isDisplayed - it won't be on screen yet)
+        System.out.println("🔍 Scrolling to playerDetailsCard...");
+        onView(withId(R.id.playerDetailsCard))
+                .perform(scrollTo(), click());
+        System.out.println("✅ Clicked on playerDetailsCard");
         Thread.sleep(2000);
         
+        // Now we are in PlayerDetailsFragment with current logged-in user
+        // Continue with updating personal details
+        System.out.println("✅ Navigated to PlayerDetailsFragment");
+        Thread.sleep(500);
+        
         onView(withId(R.id.firstNameEditText))
-                .perform(replaceText(TEST_FIRST_NAME), closeSoftKeyboard());
+                .perform(scrollTo(), replaceText(TEST_FIRST_NAME), closeSoftKeyboard());
         Thread.sleep(500);
         
         onView(withId(R.id.lastNameEditText))
-                .perform(replaceText(TEST_LAST_NAME), closeSoftKeyboard());
+                .perform(scrollTo(), replaceText(TEST_LAST_NAME), closeSoftKeyboard());
         Thread.sleep(500);
         
         onView(withId(R.id.gradeEditText))
-                .perform(replaceText(TEST_GRADE), closeSoftKeyboard());
+                .perform(scrollTo(), replaceText(TEST_GRADE), closeSoftKeyboard());
         Thread.sleep(500);
         
         onView(withId(R.id.schoolEditText))
-                .perform(replaceText(TEST_SCHOOL), closeSoftKeyboard());
+                .perform(scrollTo(), replaceText(TEST_SCHOOL), closeSoftKeyboard());
         Thread.sleep(500);
         
         onView(withId(R.id.playerPhoneEditText))
-                .perform(replaceText(TEST_PLAYER_PHONE), closeSoftKeyboard());
+                .perform(scrollTo(), replaceText(TEST_PLAYER_PHONE), closeSoftKeyboard());
         Thread.sleep(500);
         
         onView(withId(R.id.idNumberEditText))
-                .perform(replaceText(TEST_ID_NUMBER), closeSoftKeyboard());
+                .perform(scrollTo(), replaceText(TEST_ID_NUMBER), closeSoftKeyboard());
         Thread.sleep(500);
         
         onView(withId(R.id.birthDateEditText))
-                .perform(replaceText(TEST_BIRTH_DATE), closeSoftKeyboard());
+                .perform(scrollTo(), replaceText(TEST_BIRTH_DATE), closeSoftKeyboard());
         Thread.sleep(500);
         
         onView(withId(R.id.jerseyNumberEditText))
-                .perform(replaceText(TEST_JERSEY_NUMBER), closeSoftKeyboard());
+                .perform(scrollTo(), replaceText(TEST_JERSEY_NUMBER), closeSoftKeyboard());
         Thread.sleep(500);
         
         onView(withId(R.id.shirtSizeSpinner))
-                .perform(click());
+                .perform(scrollTo(), click());
         Thread.sleep(500);
         onView(withText(TEST_SHIRT_SIZE))
                 .perform(click());
@@ -364,9 +379,8 @@ public class PlayerFullFlowTest {
         System.out.println("💾 Saving personal details...");
         Thread.sleep(2000);
         
-        // Ensure button is ready and click it
+        // Click save button (no scrollTo needed - button is outside ScrollView)
         onView(withId(R.id.saveButton))
-                .perform(scrollTo())
                 .check(matches(isDisplayed()))
                 .check(matches(isEnabled()))
                 .perform(click());
@@ -441,8 +455,9 @@ public class PlayerFullFlowTest {
         FirebaseAuth.getInstance().signOut();
         Thread.sleep(1000);
         
-        scenario = ActivityScenario.launch(LoginActivity.class);
-        Thread.sleep(1500);
+        // MainActivity will show LoginFragment after logout
+        scenario = ActivityScenario.launch(MainActivity.class);
+        Thread.sleep(5000); // Wait for MainActivity → HomeFragment → LoginFragment navigation
         
         onView(withId(R.id.emailEditText))
                 .perform(replaceText(COORDINATOR_EMAIL), closeSoftKeyboard());

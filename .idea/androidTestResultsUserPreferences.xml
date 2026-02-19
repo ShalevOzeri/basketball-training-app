@@ -8,9 +8,11 @@
             <AndroidTestResultsTableState>
               <option name="preferredColumnWidths">
                 <map>
-                  <entry key="Duration" value="90" />
+                  <entry key="Duration" value="139" />
                   <entry key="Medium_Phone_API_36.1" value="120" />
-                  <entry key="Tests" value="360" />
+                  <entry key="Pixel_5" value="169" />
+                  <entry key="Pixel_6_Pro" value="120" />
+                  <entry key="Tests" value="409" />
                 </map>
               </option>
             </AndroidTestResultsTableState>

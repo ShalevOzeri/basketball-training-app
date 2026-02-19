@@ -88,8 +88,12 @@ public class TrainingRepository {
     }
     
     public void addTraining(Training training, OnConflictCheckListener listener) {
+        addTraining(training, null, listener);
+    }
+    
+    public void addTraining(Training training, String excludeTrainingId, OnConflictCheckListener listener) {
         // Check for conflicts before adding
-        android.util.Log.d("TrainingRepository", "Checking for conflicts for training: Team=" + training.getTeamName() + ", Court=" + training.getCourtId());
+        android.util.Log.d("TrainingRepository", "Checking for conflicts for training: Team=" + training.getTeamName() + ", Court=" + training.getCourtId() + ", excludeId=" + excludeTrainingId);
         
         trainingsRef.orderByChild("courtId").equalTo(training.getCourtId())
             .addListenerForSingleValueEvent(new ValueEventListener() {
@@ -100,10 +104,18 @@ public class TrainingRepository {
                     boolean hasConflict = false;
                     for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
                         Training existingTraining = snapshot.getValue(Training.class);
-                        if (existingTraining != null && training.conflictsWith(existingTraining)) {
-                            android.util.Log.w("TrainingRepository", "Conflict found with: " + existingTraining.getTeamName());
-                            hasConflict = true;
-                            break;
+                        if (existingTraining != null) {
+                            // Skip the training being edited (exclude by ID)
+                            if (excludeTrainingId != null && excludeTrainingId.equals(existingTraining.getTrainingId())) {
+                                android.util.Log.d("TrainingRepository", "Skipping excluded training: " + existingTraining.getTrainingId());
+                                continue;
+                            }
+                            
+                            if (training.conflictsWith(existingTraining)) {
+                                android.util.Log.w("TrainingRepository", "Conflict found with: " + existingTraining.getTeamName());
+                                hasConflict = true;
+                                break;
+                            }
                         }
                     }
 

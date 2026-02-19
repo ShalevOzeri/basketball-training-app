@@ -1,10 +1,22 @@
-package com.example.testapp;
+package com.example.testapp.fragments;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.text.TextUtils;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
+import androidx.navigation.ui.NavigationUI;
+
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,12 +26,9 @@ import android.widget.LinearLayout;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
-import androidx.lifecycle.ViewModelProvider;
 
+import com.example.testapp.R;
 import com.example.testapp.models.DaySchedule;
 import com.example.testapp.models.Court;
 import com.example.testapp.models.Team;
@@ -43,7 +52,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class EditTrainingActivity extends AppCompatActivity {
+public class EditTrainingFragment extends Fragment {
 
     private MaterialToolbar toolbar;
     private SearchView searchViewTeams;
@@ -66,56 +75,72 @@ public class EditTrainingActivity extends AppCompatActivity {
     private Team selectedTeam;
     private Court selectedCourt;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_edit_training);
+    private String trainingId;
 
-        originalTraining = (Training) getIntent().getSerializableExtra("TRAINING");
-        if (originalTraining == null) {
-            Toast.makeText(this, "שגיאה: לא נמצא אימון לעריכה", Toast.LENGTH_SHORT).show();
-            finish();
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_edit_training, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        // Get trainingId from arguments
+        if (getArguments() != null) {
+            trainingId = getArguments().getString("trainingId");
+        }
+
+        if (trainingId == null || trainingId.isEmpty()) {
+            Toast.makeText(requireContext(), "שגיאה: לא נמצא אימון לעריכה", Toast.LENGTH_SHORT).show();
+            Navigation.findNavController(view).navigateUp();
             return;
         }
 
-        selectedDate.setTimeInMillis(originalTraining.getDate());
-
-        initViews();
-        setupToolbar();
+        initViews(view);
+        setupToolbar(view);
         setupViewModel();
         setupPickers();
         setupSave();
-        loadTeams();
-        loadCourts();
-        populateFields();
+        
+        // Load training first, then teams and courts
+        loadTraining();
     }
 
-    private void initViews() {
-        toolbar = findViewById(R.id.toolbar);
-        searchViewTeams = findViewById(R.id.searchViewTeams);
-        searchViewCourts = findViewById(R.id.searchViewCourts);
-        chipGroupTeams = findViewById(R.id.chipGroupTeams);
-        chipGroupCourts = findViewById(R.id.chipGroupCourts);
-        editDate = findViewById(R.id.editDate);
-        editStartTime = findViewById(R.id.editStartTime);
-        editEndTime = findViewById(R.id.editEndTime);
-        editNotes = findViewById(R.id.editNotes);
-        btnSave = findViewById(R.id.btnSave);
+    private void initViews(View view) {
+        toolbar = view.findViewById(R.id.toolbar);
+        searchViewTeams = view.findViewById(R.id.searchViewTeams);
+        searchViewCourts = view.findViewById(R.id.searchViewCourts);
+        chipGroupTeams = view.findViewById(R.id.chipGroupTeams);
+        chipGroupCourts = view.findViewById(R.id.chipGroupCourts);
+        editDate = view.findViewById(R.id.editDate);
+        editStartTime = view.findViewById(R.id.editStartTime);
+        editEndTime = view.findViewById(R.id.editEndTime);
+        editNotes = view.findViewById(R.id.editNotes);
+        btnSave = view.findViewById(R.id.btnSave);
     }
 
-    private void setupToolbar() {
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("עריכת אימון");
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+    private void setupToolbar(View view) {
+        NavController navController = Navigation.findNavController(view);
+        
+        // Set as action bar
+        ((AppCompatActivity) requireActivity()).setSupportActionBar(toolbar);
+        
+        // Setup navigation
+        NavigationUI.setupWithNavController(toolbar, navController);
+        
+        // Set title
+        if (((AppCompatActivity) requireActivity()).getSupportActionBar() != null) {
+            ((AppCompatActivity) requireActivity()).getSupportActionBar().setTitle("עריכת אימון");
         }
     }
 
     private void setupViewModel() {
         viewModel = new ViewModelProvider(this).get(TrainingViewModel.class);
-        viewModel.getErrors().observe(this, err -> {
+        viewModel.getErrors().observe(getViewLifecycleOwner(), err -> {
             if (err != null) {
-                Toast.makeText(this, err, Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), err, Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -148,6 +173,136 @@ public class EditTrainingActivity extends AppCompatActivity {
         });
     }
 
+    private void loadTraining() {
+        FirebaseDatabase.getInstance().getReference("trainings").child(trainingId)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot snapshot) {
+                        originalTraining = snapshot.getValue(Training.class);
+                        if (originalTraining == null) {
+                            Toast.makeText(requireContext(), "שגיאה: לא נמצא אימון", Toast.LENGTH_SHORT).show();
+                            if (getView() != null) {
+                                Navigation.findNavController(getView()).navigateUp();
+                            }
+                            return;
+                        }
+                        
+                        selectedDate.setTimeInMillis(originalTraining.getDate());
+                        
+                        // Now load teams and courts
+                        loadTeams();
+                        loadCourts();
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError error) {
+                        Toast.makeText(requireContext(), "שגיאה בטעינת אימון: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                        if (getView() != null) {
+                            Navigation.findNavController(getView()).navigateUp();
+                        }
+                    }
+                });
+    }
+
+    private void populateFields() {
+        if (originalTraining == null) return;
+        
+        // Update the date field
+        Locale hebrewLocale = new Locale("he", "IL");
+        SimpleDateFormat dateFmt = new SimpleDateFormat("dd/MM/yyyy", hebrewLocale);
+        editDate.setText(dateFmt.format(selectedDate.getTime()));
+        
+        editStartTime.setText(originalTraining.getStartTime());
+        editEndTime.setText(originalTraining.getEndTime());
+        editNotes.setText(originalTraining.getNotes());
+        
+        // Set selected team and court from original training
+        for (Team team : teams) {
+            if (team.getTeamId().equals(originalTraining.getTeamId())) {
+                selectedTeam = team;
+                break;
+            }
+        }
+        
+        for (Court court : courts) {
+            if (court.getCourtId().equals(originalTraining.getCourtId())) {
+                selectedCourt = court;
+                break;
+            }
+        }
+        
+        setupTeamChipGroup();
+        setupCourtChipGroup();
+    }
+
+    private void setupTeamChipGroup() {
+        chipGroupTeams.removeAllViews();
+        for (Team team : teams) {
+            Chip chip = new Chip(requireContext());
+            chip.setText(team.getName());
+            chip.setChipBackgroundColorResource(android.R.color.white);
+            chip.setCheckable(true);
+            
+            // Check if this is the selected team
+            if (selectedTeam != null && team.getTeamId().equals(selectedTeam.getTeamId())) {
+                chip.setChecked(true);
+            }
+            
+            chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) {
+                    selectedTeam = team;
+                }
+            });
+            chipGroupTeams.addView(chip);
+        }
+    }
+
+    private void setupCourtChipGroup() {
+        chipGroupCourts.removeAllViews();
+        for (Court court : courts) {
+            Chip chip = new Chip(requireContext());
+            chip.setText(court.getName());
+            chip.setChipBackgroundColorResource(android.R.color.white);
+            chip.setCheckable(true);
+            
+            // Check if this is the selected court
+            if (selectedCourt != null && court.getCourtId().equals(selectedCourt.getCourtId())) {
+                chip.setChecked(true);
+            }
+            
+            chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) {
+                    selectedCourt = court;
+                }
+            });
+            chipGroupCourts.addView(chip);
+        }
+    }
+
+    private void filterTeamChips(String query) {
+        String lowerQuery = query.toLowerCase();
+        for (int i = 0; i < chipGroupTeams.getChildCount(); i++) {
+            View child = chipGroupTeams.getChildAt(i);
+            if (child instanceof Chip) {
+                Chip chip = (Chip) child;
+                String teamName = chip.getText().toString();
+                chip.setVisibility(teamName.toLowerCase().contains(lowerQuery) ? View.VISIBLE : View.GONE);
+            }
+        }
+    }
+
+    private void filterCourtChips(String query) {
+        String lowerQuery = query.toLowerCase();
+        for (int i = 0; i < chipGroupCourts.getChildCount(); i++) {
+            View child = chipGroupCourts.getChildAt(i);
+            if (child instanceof Chip) {
+                Chip chip = (Chip) child;
+                String courtName = chip.getText().toString();
+                chip.setVisibility(courtName.toLowerCase().contains(lowerQuery) ? View.VISIBLE : View.GONE);
+            }
+        }
+    }
+
     private void setupPickers() {
         Locale hebrewLocale = new Locale("he", "IL");
         SimpleDateFormat dateFmt = new SimpleDateFormat("dd/MM/yyyy", hebrewLocale);
@@ -155,7 +310,7 @@ public class EditTrainingActivity extends AppCompatActivity {
 
         // Allow both tapping to open the dialog and manual typing
         editDate.setOnClickListener(v -> {
-            DatePicker datePicker = new DatePicker(this);
+            DatePicker datePicker = new DatePicker(requireContext());
             datePicker.init(selectedDate.get(Calendar.YEAR), selectedDate.get(Calendar.MONTH), selectedDate.get(Calendar.DAY_OF_MONTH), (view, year, monthOfYear, dayOfMonth) -> {
                 // Update selectedDate whenever user changes date in the picker
                 selectedDate.set(Calendar.YEAR, year);
@@ -164,7 +319,7 @@ public class EditTrainingActivity extends AppCompatActivity {
             });
             
             // Wrap DatePicker with proper layout parameters so buttons are visible
-            LinearLayout container = new LinearLayout(this);
+            LinearLayout container = new LinearLayout(requireContext());
             container.setLayoutParams(new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
@@ -176,7 +331,7 @@ public class EditTrainingActivity extends AppCompatActivity {
             datePicker.setLayoutParams(pickerParams);
             container.addView(datePicker);
             
-            AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert);
+            AlertDialog.Builder builder = new AlertDialog.Builder(requireContext(), android.R.style.Theme_Material_Light_Dialog_Alert);
             builder.setTitle(getString(R.string.date_picker_title))
                     .setView(container)
                     .setPositiveButton(getString(R.string.date_picker_save), (dialog, which) -> {
@@ -296,7 +451,7 @@ public class EditTrainingActivity extends AppCompatActivity {
         // Build a spinner-style TimePicker via ContextThemeWrapper
         // Force spinner look using Theme.Holo.Light.Dialog
         android.view.ContextThemeWrapper themedContext = new android.view.ContextThemeWrapper(
-            this, android.R.style.Theme_Holo_Light_Dialog);
+            requireContext(), android.R.style.Theme_Holo_Light_Dialog);
         final TimePicker timePicker = new TimePicker(themedContext);
         
         timePicker.setIs24HourView(true);
@@ -304,7 +459,7 @@ public class EditTrainingActivity extends AppCompatActivity {
         timePicker.setMinute(now.get(Calendar.MINUTE));
         
         // Create dialog
-        new androidx.appcompat.app.AlertDialog.Builder(this)
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("בחר שעה")
             .setView(timePicker)
             .setPositiveButton("שמור", (dialog, which) -> {
@@ -319,115 +474,18 @@ public class EditTrainingActivity extends AppCompatActivity {
             .show();
     }
 
-    private void populateFields() {
-        // Update the date field
-        Locale hebrewLocale = new Locale("he", "IL");
-        SimpleDateFormat dateFmt = new SimpleDateFormat("dd/MM/yyyy", hebrewLocale);
-        editDate.setText(dateFmt.format(selectedDate.getTime()));
-        
-        editStartTime.setText(originalTraining.getStartTime());
-        editEndTime.setText(originalTraining.getEndTime());
-        editNotes.setText(originalTraining.getNotes());
-        
-        // Set selected team and court from original training
-        for (Team team : teams) {
-            if (team.getTeamId().equals(originalTraining.getTeamId())) {
-                selectedTeam = team;
-                break;
-            }
-        }
-        
-        for (Court court : courts) {
-            if (court.getCourtId().equals(originalTraining.getCourtId())) {
-                selectedCourt = court;
-                break;
-            }
-        }
-        
-        setupTeamChipGroup();
-        setupCourtChipGroup();
-    }
-
-    private void setupTeamChipGroup() {
-        chipGroupTeams.removeAllViews();
-        for (Team team : teams) {
-            Chip chip = new Chip(this);
-            chip.setText(team.getName());
-            chip.setChipBackgroundColorResource(android.R.color.white);
-            chip.setCheckable(true);
-            
-            // Check if this is the selected team
-            if (selectedTeam != null && team.getTeamId().equals(selectedTeam.getTeamId())) {
-                chip.setChecked(true);
-            }
-            
-            chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                if (isChecked) {
-                    selectedTeam = team;
-                }
-            });
-            chipGroupTeams.addView(chip);
-        }
-    }
-
-    private void setupCourtChipGroup() {
-        chipGroupCourts.removeAllViews();
-        for (Court court : courts) {
-            Chip chip = new Chip(this);
-            chip.setText(court.getName());
-            chip.setChipBackgroundColorResource(android.R.color.white);
-            chip.setCheckable(true);
-            
-            // Check if this is the selected court
-            if (selectedCourt != null && court.getCourtId().equals(selectedCourt.getCourtId())) {
-                chip.setChecked(true);
-            }
-            
-            chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                if (isChecked) {
-                    selectedCourt = court;
-                }
-            });
-            chipGroupCourts.addView(chip);
-        }
-    }
-
-    private void filterTeamChips(String query) {
-        String lowerQuery = query.toLowerCase();
-        for (int i = 0; i < chipGroupTeams.getChildCount(); i++) {
-            View child = chipGroupTeams.getChildAt(i);
-            if (child instanceof Chip) {
-                Chip chip = (Chip) child;
-                String teamName = chip.getText().toString();
-                chip.setVisibility(teamName.toLowerCase().contains(lowerQuery) ? View.VISIBLE : View.GONE);
-            }
-        }
-    }
-
-    private void filterCourtChips(String query) {
-        String lowerQuery = query.toLowerCase();
-        for (int i = 0; i < chipGroupCourts.getChildCount(); i++) {
-            View child = chipGroupCourts.getChildAt(i);
-            if (child instanceof Chip) {
-                Chip chip = (Chip) child;
-                String courtName = chip.getText().toString();
-                chip.setVisibility(courtName.toLowerCase().contains(lowerQuery) ? View.VISIBLE : View.GONE);
-            }
-        }
-    }
-
     private void setupSave() {
         btnSave.setOnClickListener(v -> saveTraining());
     }
 
     private void saveTraining() {
         if (selectedTeam == null) {
-            Toast.makeText(this, "בחר קבוצה", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "בחר קבוצה", Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (selectedCourt == null) {
-            Toast.makeText(this, "בחר מגרש", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "בחר מגרש", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -438,14 +496,14 @@ public class EditTrainingActivity extends AppCompatActivity {
         String notes = editNotes.getText().toString().trim();
 
         if (TextUtils.isEmpty(start) || TextUtils.isEmpty(end)) {
-            Toast.makeText(this, "שעות התחלה/סיום נדרשות", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "שעות התחלה/סיום נדרשות", Toast.LENGTH_SHORT).show();
             return;
         }
 
         int startMinutes = timeToMinutesSafe(start);
         int endMinutes = timeToMinutesSafe(end);
         if (startMinutes < 0 || endMinutes < 0 || startMinutes >= endMinutes) {
-            Toast.makeText(this, "שעת התחלה חייבת להיות לפני שעת סיום", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "שעת התחלה חייבת להיות לפני שעת סיום", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -474,7 +532,7 @@ public class EditTrainingActivity extends AppCompatActivity {
             int currentTimeInMinutes = currentHour * 60 + currentMinute;
             
             if (startMinutes <= currentTimeInMinutes) {
-                Toast.makeText(this, "לא ניתן להוסיף אימונים בשעות שכבר עברו", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "לא ניתן להוסיף אימונים בשעות שכבר עברו", Toast.LENGTH_SHORT).show();
                 return;
             }
         }
@@ -490,7 +548,13 @@ public class EditTrainingActivity extends AppCompatActivity {
         updatedTraining.setCourtType(court.getCourtType());
         updatedTraining.setStartTime(start);
         updatedTraining.setEndTime(end);
-        updatedTraining.setDate(selectedDate.getTimeInMillis());
+        
+        // Store date as midnight LOCAL time (not UTC) to match filtering in ScheduleFragment/AllCourtsViewFragment
+        Calendar localMidnight = Calendar.getInstance();
+        localMidnight.set(selectedDate.get(Calendar.YEAR), selectedDate.get(Calendar.MONTH), selectedDate.get(Calendar.DAY_OF_MONTH), 0, 0, 0);
+        localMidnight.set(Calendar.MILLISECOND, 0);
+        updatedTraining.setDate(localMidnight.getTimeInMillis());
+        
         Locale hebrewLocale = new Locale("he", "IL");
         updatedTraining.setDayOfWeek(new SimpleDateFormat("EEEE", hebrewLocale).format(selectedDate.getTime()));
         updatedTraining.setNotes(notes);
@@ -501,23 +565,34 @@ public class EditTrainingActivity extends AppCompatActivity {
     }
 
     private void checkConflictAndUpdate(Training updatedTraining) {
-        viewModel.addTraining(updatedTraining, new TrainingRepository.OnConflictCheckListener() {
+        // Use the version of addTraining that excludes the original training from conflict check
+        viewModel.addTraining(updatedTraining, originalTraining.getTrainingId(), new TrainingRepository.OnConflictCheckListener() {
             @Override
             public void onSuccess() {
                 // First delete old training, then save new one
                 viewModel.deleteTraining(originalTraining.getTrainingId());
-                Toast.makeText(EditTrainingActivity.this, "אימון עודכן", Toast.LENGTH_SHORT).show();
-                finish();
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        Toast.makeText(requireContext(), "אימון עודכן", Toast.LENGTH_SHORT).show();
+                        if (getView() != null) {
+                            Navigation.findNavController(getView()).navigateUp();
+                        }
+                    });
+                }
             }
 
             @Override
             public void onConflict() {
-                Toast.makeText(EditTrainingActivity.this, "התנגשות במגרש/זמן", Toast.LENGTH_SHORT).show();
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "התנגשות במגרש/זמן", Toast.LENGTH_SHORT).show());
+                }
             }
 
             @Override
             public void onFailure(String error) {
-                Toast.makeText(EditTrainingActivity.this, error, Toast.LENGTH_SHORT).show();
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show());
+                }
             }
         });
     }
@@ -538,12 +613,15 @@ public class EditTrainingActivity extends AppCompatActivity {
                             }
                         }
 
-                        setupTeamChipGroup();
+                        // Check if courts are also loaded
+                        if (!courts.isEmpty()) {
+                            populateFields();
+                        }
                     }
 
                     @Override
                     public void onCancelled(DatabaseError error) {
-                        Toast.makeText(EditTrainingActivity.this, "שגיאה בטעינת קבוצות", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireContext(), "שגיאה בטעינת קבוצות", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -564,12 +642,15 @@ public class EditTrainingActivity extends AppCompatActivity {
                             }
                         }
 
-                        setupCourtChipGroup();
+                        // Check if teams are also loaded
+                        if (!teams.isEmpty()) {
+                            populateFields();
+                        }
                     }
 
                     @Override
                     public void onCancelled(DatabaseError error) {
-                        Toast.makeText(EditTrainingActivity.this, "שגיאה בטעינת מגרשים", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireContext(), "שגיאה בטעינת מגרשים", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -578,20 +659,20 @@ public class EditTrainingActivity extends AppCompatActivity {
         int dayOfWeek = selectedDate.get(Calendar.DAY_OF_WEEK);
         DaySchedule schedule = court.getScheduleForDay(dayOfWeek);
         if (schedule == null || !schedule.isActive()) {
-            Toast.makeText(this, "המגרש סגור ביום זה", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "המגרש סגור ביום זה", Toast.LENGTH_SHORT).show();
             return false;
         }
 
         int open = timeToMinutesSafe(schedule.getOpeningHour());
         int close = timeToMinutesSafe(schedule.getClosingHour());
         if (open < 0 || close < 0 || open >= close) {
-            Toast.makeText(this, "הגדרת שעות פעילות לא תקינה למגרש", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "הגדרת שעות פעילות לא תקינה למגרש", Toast.LENGTH_SHORT).show();
             return false;
         }
 
         if (startMinutes < open || endMinutes > close) {
             String msg = String.format(Locale.getDefault(), "שעות חורגות משעות פעילות (%s-%s)", schedule.getOpeningHour(), schedule.getClosingHour());
-            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show();
             return false;
         }
         return true;
@@ -608,14 +689,5 @@ public class EditTrainingActivity extends AppCompatActivity {
         } catch (Exception e) {
             return -1;
         }
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            finish();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
     }
 }

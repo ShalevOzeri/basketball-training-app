@@ -211,6 +211,10 @@ public class TrainingViewModel extends ViewModel {
     public void addTraining(Training training, TrainingRepository.OnConflictCheckListener listener) {
         repository.addTraining(training, listener);
     }
+    
+    public void addTraining(Training training, String excludeTrainingId, TrainingRepository.OnConflictCheckListener listener) {
+        repository.addTraining(training, excludeTrainingId, listener);
+    }
 
     public void updateTraining(Training training) {
         repository.updateTraining(training);

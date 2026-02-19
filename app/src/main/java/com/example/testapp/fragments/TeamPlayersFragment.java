@@ -1,12 +1,15 @@
-package com.example.testapp;
+package com.example.testapp.fragments;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
 import android.text.Editable;
+import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -15,11 +18,18 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
+import androidx.navigation.ui.NavigationUI;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.testapp.R;
 import com.example.testapp.adapters.TeamPlayersAdapter;
 import com.example.testapp.models.Player;
 import com.example.testapp.models.Team;
@@ -43,49 +53,48 @@ import org.apache.poi.ss.usermodel.Font;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
 
-public class TeamPlayersActivity extends AppCompatActivity {
+public class TeamPlayersFragment extends Fragment {
 
     private RecyclerView recyclerView;
     private TeamPlayersAdapter adapter;
     private ProgressBar progressBar;
     private TextView emptyView;
+    private MaterialToolbar toolbar;
+    
     private String teamId;
     private String teamName;
     private Team team;
     private DatabaseReference playersRef;
     private DatabaseReference usersRef;
 
+    @Nullable
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_team_players);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_team_players, container, false);
+    }
 
-        teamId = getIntent().getStringExtra("teamId");
-        teamName = getIntent().getStringExtra("teamName");
-        team = getIntent().getParcelableExtra("team");
-
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("שחקני " + teamName);
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        
+        // Get arguments
+        if (getArguments() != null) {
+            teamId = getArguments().getString("teamId");
+            teamName = getArguments().getString("teamName");
+            team = getArguments().getParcelable("team");
         }
-        toolbar.setNavigationOnClickListener(v -> finish());
 
-        recyclerView = findViewById(R.id.playersRecyclerView);
-        progressBar = findViewById(R.id.progressBar);
-        emptyView = findViewById(R.id.emptyView);
+        // Enable options menu
+        setHasOptionsMenu(true);
 
+        initializeViews(view);
+        setupToolbar(view);
+        
         playersRef = FirebaseDatabase.getInstance().getReference("players");
         usersRef = FirebaseDatabase.getInstance().getReference("users");
 
@@ -93,27 +102,54 @@ public class TeamPlayersActivity extends AppCompatActivity {
         loadTeamPlayers();
     }
 
+    private void initializeViews(View view) {
+        toolbar = view.findViewById(R.id.toolbar);
+        recyclerView = view.findViewById(R.id.playersRecyclerView);
+        progressBar = view.findViewById(R.id.progressBar);
+        emptyView = view.findViewById(R.id.emptyView);
+    }
+
+    private void setupToolbar(View view) {
+        // Setup toolbar with NavController
+        NavController navController = Navigation.findNavController(view);
+        
+        // Set as action bar
+        ((AppCompatActivity) requireActivity()).setSupportActionBar(toolbar);
+        
+        // Setup navigation
+        NavigationUI.setupWithNavController(toolbar, navController);
+        
+        // Set title
+        if (((AppCompatActivity) requireActivity()).getSupportActionBar() != null) {
+            ((AppCompatActivity) requireActivity()).getSupportActionBar().setTitle("שחקני " + teamName);
+        }
+    }
+
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
-        // Reload players when returning from AddPlayersActivity
+        // Reload players when returning from other screens
         loadTeamPlayers();
     }
 
     @Override
-    public boolean onCreateOptionsMenu(android.view.Menu menu) {
-        getMenuInflater().inflate(R.menu.team_players_menu, menu);
-        return true;
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        menu.clear(); // Clear MainActivity menu items first
+        inflater.inflate(R.menu.team_players_menu, menu);
+        super.onCreateOptionsMenu(menu, inflater);
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.action_add_player) {
-            // Open AddPlayersActivity instead of dialog
-            Intent intent = new Intent(TeamPlayersActivity.this, AddPlayersActivity.class);
-            intent.putExtra("teamId", teamId);
-            intent.putExtra("teamName", teamName);
-            startActivity(intent);
+            // Navigate to AddPlayersFragment
+            Bundle args = new Bundle();
+            args.putString("teamId", teamId);
+            args.putString("teamName", teamName);
+            if (getView() != null) {
+                Navigation.findNavController(getView()).navigate(
+                    R.id.action_teamPlayers_to_addPlayers, args);
+            }
             return true;
         } else if (item.getItemId() == R.id.action_export_players) {
             exportPlayersToExcel();
@@ -123,7 +159,7 @@ public class TeamPlayersActivity extends AppCompatActivity {
     }
 
     private void setupRecyclerView() {
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new TeamPlayersAdapter(new TeamPlayersAdapter.OnPlayerEditListener() {
             @Override
             public void onEditPlayer(Player player) {
@@ -173,7 +209,7 @@ public class TeamPlayersActivity extends AppCompatActivity {
                 @Override
                 public void onCancelled(DatabaseError error) {
                     progressBar.setVisibility(View.GONE);
-                    Toast.makeText(TeamPlayersActivity.this, "שגיאה בטעינת שחקנים", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "שגיאה בטעינת שחקנים", Toast.LENGTH_SHORT).show();
                 }
             });
     }
@@ -266,15 +302,19 @@ public class TeamPlayersActivity extends AppCompatActivity {
     }
 
     private void editPlayerDetails(Player player) {
-        Intent intent = new Intent(this, PlayerDetailsActivity.class);
-        intent.putExtra("playerId", player.getPlayerId());
-        intent.putExtra("userId", player.getUserId());
-        intent.putExtra("teamId", teamId);
-        startActivity(intent);
+        // Navigate to PlayerDetailsFragment
+        Bundle args = new Bundle();
+        args.putString("playerId", player.getPlayerId());
+        args.putString("userId", player.getUserId());
+        args.putString("teamId", teamId);
+        if (getView() != null) {
+            Navigation.findNavController(getView()).navigate(
+                R.id.action_teamPlayers_to_playerDetails, args);
+        }
     }
 
     private void showDeleteConfirmationDialog(Player player) {
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(requireContext())
             .setTitle("הסרת שחקן")
             .setMessage("האם להסיר את " + player.getFirstName() + " " + player.getLastName() + " מהקבוצה?")
             .setPositiveButton("הסר", (dialog, which) -> deletePlayer(player))
@@ -286,7 +326,6 @@ public class TeamPlayersActivity extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
         
         String userId = player.getUserId();
-        // Use activity's teamId field instead of player.getTeamId()
 
         // Remove this team from user's teamIds (keep single player record)
         DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
@@ -309,19 +348,19 @@ public class TeamPlayersActivity extends AppCompatActivity {
                             userRef.child("registrationStatus").setValue("NONE");
                         }
                         progressBar.setVisibility(View.GONE);
-                        Toast.makeText(TeamPlayersActivity.this, "השחקן הוסר בהצלחה", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireContext(), "השחקן הוסר בהצלחה", Toast.LENGTH_SHORT).show();
                         loadTeamPlayers();
                     })
                     .addOnFailureListener(e -> {
                         progressBar.setVisibility(View.GONE);
-                        Toast.makeText(TeamPlayersActivity.this, "שגיאה בעדכון נתוני השחקן", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireContext(), "שגיאה בעדכון נתוני השחקן", Toast.LENGTH_SHORT).show();
                     });
             }
 
             @Override
             public void onCancelled(DatabaseError error) {
                 progressBar.setVisibility(View.GONE);
-                Toast.makeText(TeamPlayersActivity.this, "שגיאה בטעינת נתוני השחקן", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "שגיאה בטעינת נתוני השחקן", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -342,7 +381,7 @@ public class TeamPlayersActivity extends AppCompatActivity {
                 }
                 
                 if (allPlayers.isEmpty()) {
-                    Toast.makeText(TeamPlayersActivity.this, "אין שחקנים במערכת", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "אין שחקנים במערכת", Toast.LENGTH_SHORT).show();
                     return;
                 }
                 
@@ -352,22 +391,22 @@ public class TeamPlayersActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(DatabaseError error) {
-                Toast.makeText(TeamPlayersActivity.this, "שגיאה בטעינת שחקנים", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "שגיאה בטעינת שחקנים", Toast.LENGTH_SHORT).show();
             }
         });
     }
     
     private void showPlayerSearchDialog(List<User> allPlayers) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("הוסף שחקנים לקבוצה " + teamName);
         
         // Create layout with search box and list
-        LinearLayout mainLayout = new LinearLayout(this);
+        LinearLayout mainLayout = new LinearLayout(requireContext());
         mainLayout.setOrientation(LinearLayout.VERTICAL);
         mainLayout.setPadding(20, 20, 20, 20);
         
         // Create search box
-        EditText searchBox = new EditText(this);
+        EditText searchBox = new EditText(requireContext());
         searchBox.setHint("חפש שחקן לפי שם...");
         searchBox.setSingleLine(true);
         LinearLayout.LayoutParams searchParams = new LinearLayout.LayoutParams(
@@ -377,11 +416,11 @@ public class TeamPlayersActivity extends AppCompatActivity {
         mainLayout.addView(searchBox, searchParams);
         
         // Create list view with checkboxes
-        ListView listView = new ListView(this);
+        ListView listView = new ListView(requireContext());
         listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
         
         // Create adapter
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
             android.R.layout.simple_list_item_multiple_choice);
         
         // Add all players initially
@@ -443,9 +482,9 @@ public class TeamPlayersActivity extends AppCompatActivity {
             }
             
             if (addedCount > 0) {
-                Toast.makeText(TeamPlayersActivity.this, addedCount + " שחקנים נוספו לקבוצה", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), addedCount + " שחקנים נוספו לקבוצה", Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(TeamPlayersActivity.this, "לא נבחרו שחקנים", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "לא נבחרו שחקנים", Toast.LENGTH_SHORT).show();
             }
         })
         .setNegativeButton("ביטול", null)
@@ -481,13 +520,13 @@ public class TeamPlayersActivity extends AppCompatActivity {
         
         usersRef.child(player.getUserId()).updateChildren(updates)
             .addOnSuccessListener(aVoid -> loadTeamPlayers())
-            .addOnFailureListener(e -> Toast.makeText(TeamPlayersActivity.this, "שגיאה בהוספת שחקן", Toast.LENGTH_SHORT).show());
+            .addOnFailureListener(e -> Toast.makeText(requireContext(), "שגיאה בהוספת שחקן", Toast.LENGTH_SHORT).show());
     }
 
     private void exportPlayersToExcel() {
         List<Player> currentPlayers = adapter.getPlayers();
         if (currentPlayers == null || currentPlayers.isEmpty()) {
-            Toast.makeText(this, "אין שחקנים לייצוא", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "אין שחקנים לייצוא", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -572,20 +611,20 @@ public class TeamPlayersActivity extends AppCompatActivity {
                                 sendExcelViaEmail(file, user.getEmail(), fileName);
                             } else {
                                 progressBar.setVisibility(View.GONE);
-                                Toast.makeText(TeamPlayersActivity.this, "לא ניתן למצוא את כתובת המייל שלך", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(requireContext(), "לא ניתן למצוא את כתובת המייל שלך", Toast.LENGTH_SHORT).show();
                             }
                         }
 
                         @Override
                         public void onCancelled(DatabaseError error) {
                             progressBar.setVisibility(View.GONE);
-                            Toast.makeText(TeamPlayersActivity.this, "שגיאה בטעינת נתוני המשתמש", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(requireContext(), "שגיאה בטעינת נתוני המשתמש", Toast.LENGTH_SHORT).show();
                         }
                     });
             }
         } catch (IOException e) {
             progressBar.setVisibility(View.GONE);
-            Toast.makeText(this, "שגיאה ביצירת הקובץ: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "שגיאה ביצירת הקובץ: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -598,8 +637,8 @@ public class TeamPlayersActivity extends AppCompatActivity {
         
         try {
             android.net.Uri fileUri = androidx.core.content.FileProvider.getUriForFile(
-                this,
-                getApplicationContext().getPackageName() + ".fileprovider",
+                requireContext(),
+                requireContext().getApplicationContext().getPackageName() + ".fileprovider",
                 file
             );
             emailIntent.putExtra(Intent.EXTRA_STREAM, fileUri);
@@ -608,7 +647,7 @@ public class TeamPlayersActivity extends AppCompatActivity {
             startActivity(Intent.createChooser(emailIntent, "בחר אפליקציית דוא\"ל"));
         } catch (Exception e) {
             progressBar.setVisibility(View.GONE);
-            Toast.makeText(this, "שגיאה בשליחת הדוא\"ל: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "שגיאה בשליחת הדוא\"ל: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 

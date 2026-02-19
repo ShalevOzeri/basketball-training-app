@@ -13,7 +13,6 @@ import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 
-import com.example.testapp.LoginActivity;
 import com.example.testapp.R;
 import com.example.testapp.models.User;
 import com.example.testapp.repository.UserRepository;
@@ -124,8 +123,10 @@ public class HomeFragment extends Fragment {
         if (playerDetailsCard != null) {
             playerDetailsCard.setOnClickListener(v -> {
                 try {
-                    Intent intent = new Intent(requireContext(), com.example.testapp.PlayerDetailsActivity.class);
-                    startActivity(intent);
+                    if (getView() != null) {
+                        Navigation.findNavController(getView()).navigate(
+                            R.id.action_home_to_playerDetails);
+                    }
                 } catch (Exception e) {
                     Toast.makeText(requireContext(), "שגיאה בניווט: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 }
@@ -136,11 +137,10 @@ public class HomeFragment extends Fragment {
     private void loadCurrentUserAndCheckPermissions() {
         FirebaseAuth auth = FirebaseAuth.getInstance();
         if (auth.getCurrentUser() == null) {
-                // If no user is signed in, return to login
-            Intent intent = new Intent(requireActivity(), LoginActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            requireActivity().finish();
+            // If no user is signed in, return to login
+            if (getView() != null) {
+                Navigation.findNavController(getView()).navigate(R.id.loginFragment);
+            }
             return;
         }
 

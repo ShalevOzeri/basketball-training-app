@@ -5,6 +5,29 @@
     android:id="@+id/nav_graph"
     app:startDestination="@id/homeFragment">
 
+    <!-- Login Fragment -->
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.example.testapp.fragments.LoginFragment"
+        android:label="התחברות"
+        tools:layout="@layout/fragment_login" >
+        <action
+            android:id="@+id/action_login_to_home"
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_login_to_register"
+            app:destination="@id/registerFragment" />
+    </fragment>
+
+    <!-- Register Fragment -->
+    <fragment
+        android:id="@+id/registerFragment"
+        android:name="com.example.testapp.fragments.RegisterFragment"
+        android:label="הרשמה"
+        tools:layout="@layout/fragment_register" />
+
     <!-- Home Fragment -->
     <fragment
         android:id="@+id/homeFragment"
@@ -29,6 +52,9 @@
         <action
             android:id="@+id/action_home_to_scheduleGrid"
             app:destination="@id/scheduleGridFragment" />
+        <action
+            android:id="@+id/action_home_to_playerDetails"
+            app:destination="@id/playerDetailsFragment" />
     </fragment>
 
     <!-- Courts Fragment -->
@@ -36,21 +62,128 @@
         android:id="@+id/courtsFragment"
         android:name="com.example.testapp.fragments.CourtsFragment"
         android:label="מגרשים"
-        tools:layout="@layout/fragment_courts" />
+        tools:layout="@layout/fragment_courts" >
+        <action
+            android:id="@+id/action_courts_to_addEditCourt"
+            app:destination="@id/addEditCourtFragment" />
+    </fragment>
+
+    <!-- Add/Edit Court Fragment -->
+    <fragment
+        android:id="@+id/addEditCourtFragment"
+        android:name="com.example.testapp.fragments.AddEditCourtFragment"
+        android:label="ניהול מגרש"
+        tools:layout="@layout/fragment_add_edit_court" >
+        <argument
+            android:name="courtId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+    </fragment>
 
     <!-- Teams Fragment -->
     <fragment
         android:id="@+id/teamsFragment"
         android:name="com.example.testapp.fragments.TeamsFragment"
         android:label="קבוצות"
-        tools:layout="@layout/fragment_teams" />
+        tools:layout="@layout/fragment_teams" >
+        <action
+            android:id="@+id/action_teams_to_teamPlayers"
+            app:destination="@id/teamPlayersFragment" />
+    </fragment>
+
+    <!-- Team Players Fragment -->
+    <fragment
+        android:id="@+id/teamPlayersFragment"
+        android:name="com.example.testapp.fragments.TeamPlayersFragment"
+        android:label="שחקני קבוצה"
+        tools:layout="@layout/fragment_team_players" >
+        <argument
+            android:name="teamId"
+            app:argType="string" />
+        <argument
+            android:name="teamName"
+            app:argType="string" />
+        <argument
+            android:name="team"
+            app:argType="com.example.testapp.models.Team"
+            app:nullable="true" />
+        <action
+            android:id="@+id/action_teamPlayers_to_addPlayers"
+            app:destination="@id/addPlayersFragment" />
+        <action
+            android:id="@+id/action_teamPlayers_to_playerDetails"
+            app:destination="@id/playerDetailsFragment" />
+    </fragment>
+
+    <!-- Add Players Fragment -->
+    <fragment
+        android:id="@+id/addPlayersFragment"
+        android:name="com.example.testapp.fragments.AddPlayersFragment"
+        android:label="הוסף שחקנים"
+        tools:layout="@layout/fragment_add_players" >
+        <argument
+            android:name="teamId"
+            app:argType="string" />
+        <argument
+            android:name="teamName"
+            app:argType="string" />
+    </fragment>
+
+    <!-- Player Details Fragment -->
+    <fragment
+        android:id="@+id/playerDetailsFragment"
+        android:name="com.example.testapp.fragments.PlayerDetailsFragment"
+        android:label="פרטי שחקן"
+        tools:layout="@layout/fragment_player_details" >
+        <argument
+            android:name="userId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+        <argument
+            android:name="playerId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+        <argument
+            android:name="teamId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+    </fragment>
 
     <!-- Schedule Fragment -->
     <fragment
         android:id="@+id/scheduleFragment"
         android:name="com.example.testapp.fragments.ScheduleFragment"
         android:label="לוח אימונים"
-        tools:layout="@layout/fragment_schedule" />
+        tools:layout="@layout/fragment_schedule" >
+        <action
+            android:id="@+id/action_schedule_to_addTraining"
+            app:destination="@id/addTrainingFragment" />
+        <action
+            android:id="@+id/action_schedule_to_editTraining"
+            app:destination="@id/editTrainingFragment" />
+    </fragment>
+
+    <!-- Add Training Fragment -->
+    <fragment
+        android:id="@+id/addTrainingFragment"
+        android:name="com.example.testapp.fragments.AddTrainingFragment"
+        android:label="אימון חדש"
+        tools:layout="@layout/fragment_add_training" />
+
+    <!-- Edit Training Fragment -->
+    <fragment
+        android:id="@+id/editTrainingFragment"
+        android:name="com.example.testapp.fragments.EditTrainingFragment"
+        android:label="עריכת אימון"
+        tools:layout="@layout/fragment_edit_training" >
+        <argument
+            android:name="trainingId"
+            app:argType="string" />
+    </fragment>
 
     <!-- All Courts View Fragment -->
     <fragment

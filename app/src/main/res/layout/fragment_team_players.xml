@@ -12,8 +12,7 @@
         android:background="#FF9800"
         app:title="שחקני הקבוצה"
         app:titleTextColor="@android:color/white"
-        app:navigationIcon="?attr/homeAsUpIndicator"
-        app:menu="@menu/team_players_menu" />
+        app:navigationIcon="?attr/homeAsUpIndicator" />
 
     <FrameLayout
         android:layout_width="match_parent"

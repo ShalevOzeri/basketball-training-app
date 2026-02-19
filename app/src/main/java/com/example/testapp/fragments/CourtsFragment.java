@@ -1,6 +1,5 @@
 package com.example.testapp.fragments;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,10 +11,10 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.testapp.AddEditCourtActivity;
 import com.example.testapp.R;
 import com.example.testapp.adapters.CourtAdapter;
 import com.example.testapp.models.Court;
@@ -74,8 +73,8 @@ public class CourtsFragment extends Fragment {
     }
 
     private void showAddCourtDialog() {
-        Intent intent = new Intent(requireActivity(), AddEditCourtActivity.class);
-        startActivity(intent);
+        Navigation.findNavController(requireView())
+                .navigate(R.id.action_courts_to_addEditCourt);
     }
 
     private void showCourtOptionsDialog(Court court) {
@@ -96,9 +95,10 @@ public class CourtsFragment extends Fragment {
     }
     
     private void openEditCourtActivity(Court court) {
-        Intent intent = new Intent(requireActivity(), AddEditCourtActivity.class);
-        intent.putExtra("COURT_ID", court.getCourtId());
-        startActivity(intent);
+        Bundle args = new Bundle();
+        args.putString("courtId", court.getCourtId());
+        Navigation.findNavController(requireView())
+                .navigate(R.id.action_courts_to_addEditCourt, args);
     }
 
     private void confirmDelete(Court court) {
